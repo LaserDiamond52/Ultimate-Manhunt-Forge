@@ -1,5 +1,6 @@
 package net.laserdiamond.reversemanhunt.item;
 
+import net.laserdiamond.laserutils.util.AssetSkipModel;
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -15,9 +16,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 
-public class KnockbackItem extends Item {
+public class WindTorchItem extends Item implements AssetSkipModel {
 
-    public KnockbackItem(Properties pProperties)
+    public WindTorchItem(Properties pProperties)
     {
         super(pProperties.durability(50)
                 .attributes(createAttributes())

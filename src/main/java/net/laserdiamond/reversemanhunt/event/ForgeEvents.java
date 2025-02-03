@@ -9,16 +9,18 @@ import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
 import net.laserdiamond.reversemanhunt.commands.ManageHuntersCommand;
 import net.laserdiamond.reversemanhunt.commands.ReverseManhuntGameCommands;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
-import net.laserdiamond.reversemanhunt.network.packet.HunterChangeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -28,11 +30,15 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 
-import java.io.IOException;
-import java.util.List;
-
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
 public class ForgeEvents {
+
+    @SubscribeEvent
+    public static void onRegisterCommands(RegisterCommandsEvent event)
+    {
+        ManageHuntersCommand.register(event.getDispatcher());
+        ReverseManhuntGameCommands.register(event.getDispatcher());
+    }
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event)
@@ -54,29 +60,41 @@ public class ForgeEvents {
                 if (!playerHunter.isHunter()) // Was the dead player NOT a hunter?
                 {
                     Level level = deadPlayer.level();
-                    if (!level.isClientSide)
+                    if (!level.isClientSide) // Ensure we are on the server
                     {
                         deadPlayer.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
                         {
                             playerSpeedRunner.setWasLastKilledByHunter(false); // Assume that the player wasn't killed by the hunter (for now)
                             RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), false), deadPlayer); // Send packet to client from server
-                        });
 
-                        if (sourceEntity == null) {
-                            return; // End method if killer is null
-                        }
-                        if (sourceEntity instanceof Player killer) // Is killer a player?
-                        {
-                            killer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(killerHunter ->
+                            if (sourceEntity == null) {
+                                return; // End method if killer is null
+                            }
+                            if (sourceEntity instanceof Player killer) // Is killer a player?
                             {
-                                if (killerHunter.isHunter())
+                                killer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(killerHunter ->
                                 {
-                                    PlayerSpeedRunner.removeSpeedRunnerLife(deadPlayer, true, LogicalSide.SERVER); // Send packet from server to client
+                                    if (killerHunter.isHunter())
+                                    {
+                                        PlayerSpeedRunner.removeSpeedRunnerLife(deadPlayer, true, LogicalSide.SERVER); // Send packet from server to client
 
-                                    deadPlayer.sendSystemMessage(Component.literal(ChatFormatting.DARK_RED + "You were killed by a Hunter and lost a life!"));
-                                }
-                            });
-                        }
+                                        deadPlayer.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were killed by a Hunter and lost a life!"));
+
+                                        if (playerSpeedRunner.getLives() <= 0) // Does the speed runner still have lives remaining?
+                                        {
+                                            PlayerHunter.setCapabilityHunterValues(deadPlayer, true, PlayerSpeedRunner.BUFFED_HUNTER_ON_FINAL_DEATH, LogicalSide.SERVER); // No lives remaining. They are now a hunter
+
+                                            deadPlayer.sendSystemMessage(Component.literal(ChatFormatting.DARK_RED + "You have lost all your lives and are now a Hunter!")); // Tell player they are now a hunter
+
+                                            if (PlayerSpeedRunner.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
+                                            {
+                                                MinecraftForge.EVENT_BUS.post(new ReverseManhuntGameStateEvent.End(ReverseManhuntGameStateEvent.End.Reason.HUNTER_WIN, PlayerSpeedRunner.getRemainingSpeedRunners(), PlayerHunter.getHunters())); // No more speed runners. Hunters win!
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
                     }
                 } else // Player is a hunter
                 {
@@ -89,13 +107,6 @@ public class ForgeEvents {
                 }
             });
         }
-    }
-
-    @SubscribeEvent
-    public static void onRegisterCommands(RegisterCommandsEvent event)
-    {
-        ManageHuntersCommand.register(event.getDispatcher());
-        ReverseManhuntGameCommands.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -185,18 +196,28 @@ public class ForgeEvents {
 
         if (!level.isClientSide) // On server?
         {
-            player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+            RMPackets.sendToPlayer(new GameStateS2CPacket(RMGameState.getCurrentGameState()), player); // Let player know the current game state as soon as they join
+            if (RMGameState.State.hasGameBeenStarted()) // Check if the game has been started
             {
-                int lives = playerSpeedRunner.getLives();
-                boolean wasKilledByHunter= playerSpeedRunner.getWasLastKilledByHunter();
-                RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(lives, wasKilledByHunter), player);
-            });
-            player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-            {
-                boolean isHunter = playerHunter.isHunter();
-                boolean isBuffed = playerHunter.isBuffed();
-                RMPackets.sendToPlayer(new HunterChangeS2CPacket(isHunter, isBuffed), player);
-            });
+                if (!RMGameState.containsLoggedPlayerUUID(player)) // Is the player not part of this iteration (did they join when a game has already started)?
+                {
+                    // Not already part of this iteration
+                    RMGameState.logPlayerUUID(player); // Log them
+                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                    {
+                        // Assign new player their lives (assume they are a speed runner by default)
+                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(RMGameState.SPEED_RUNNER_LIVES, false), player);
+                    });
+                    player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                    {
+                        // Newly-joined player is not to be a hunter.
+                        playerHunter.setHunter(false);
+                        playerHunter.setBuffed(false);
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), player);
+                    });
+                }
+
+            }
         }
 
     }
@@ -204,35 +225,32 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event)
     {
-        // TODO: Determine if the player was killed by a hunter
-        // If so, give them the grace period
-        // Otherwise, no grace period
-        Player player = event.getEntity();
+
 
     }
 
-    @SubscribeEvent
-    public static void onGameStart(ReverseManhuntGameStateEvent.Start event)
-    {
-
-    }
-
-    @SubscribeEvent
-    public static void onGamePause(ReverseManhuntGameStateEvent.Pause event)
-    {
-
-    }
-
-    @SubscribeEvent
-    public static void onGameResume(ReverseManhuntGameStateEvent.Resume event)
-    {
-
-    }
-
-    @SubscribeEvent
-    public static void onGameEnd(ReverseManhuntGameStateEvent.End event)
-    {
-
-    }
+//    @SubscribeEvent
+//    public static void onGameStart(ReverseManhuntGameStateEvent.Start event)
+//    {
+//
+//    }
+//
+//    @SubscribeEvent
+//    public static void onGamePause(ReverseManhuntGameStateEvent.Pause event)
+//    {
+//
+//    }
+//
+//    @SubscribeEvent
+//    public static void onGameResume(ReverseManhuntGameStateEvent.Resume event)
+//    {
+//
+//    }
+//
+//    @SubscribeEvent
+//    public static void onGameEnd(ReverseManhuntGameStateEvent.End event)
+//    {
+//
+//    }
 
 }

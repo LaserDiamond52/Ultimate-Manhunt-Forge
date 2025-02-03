@@ -1,10 +1,15 @@
 package net.laserdiamond.reversemanhunt;
 
 import com.mojang.logging.LogUtils;
+import net.laserdiamond.reversemanhunt.datagen.RMDataGenerator;
 import net.laserdiamond.reversemanhunt.item.RMItems;
+import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -57,7 +62,9 @@ public class ReverseManhunt {
 
     private void register(IEventBus eventBus)
     {
+        new RMDataGenerator(eventBus);
         RMItems.register(eventBus);
+        RMSoundEvents.registerSounds(eventBus);
     }
 
     public static Level getLevel(Player player)
@@ -71,6 +78,20 @@ public class ReverseManhunt {
             e.printStackTrace();
         }
         return ret;
+    }
+
+    public static ServerLevel getServerLevel(Player player)
+    {
+        Level level  = getLevel(player);
+        if (level != null)
+        {
+            MinecraftServer mcs = level.getServer();
+            if (mcs != null)
+            {
+                return mcs.getLevel(level.dimension());
+            }
+        }
+        return null;
     }
 
 }

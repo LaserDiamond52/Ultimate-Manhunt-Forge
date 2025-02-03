@@ -1,0 +1,9 @@
+{
+  "loader": "forge:obj",
+  "flip_v": true,
+  "model": "reverse_manhunt:models/obj/wind_torch.obj",
+  "textures": {
+    "hilt": "reverse_manhunt:item/wind_torch_hilt",
+    "wind_gust": "reverse_manhunt:item/wind_gust"
+  }
+}

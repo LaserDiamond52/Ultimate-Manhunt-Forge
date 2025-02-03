@@ -2,10 +2,9 @@ package net.laserdiamond.reversemanhunt.capability;
 
 import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
-import net.laserdiamond.reversemanhunt.network.packet.SpeedRunnerLifeChangeC2SPacket;
-import net.laserdiamond.reversemanhunt.network.packet.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeC2SPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.capabilities.AutoRegisterCapability;
 import net.minecraftforge.fml.LogicalSide;

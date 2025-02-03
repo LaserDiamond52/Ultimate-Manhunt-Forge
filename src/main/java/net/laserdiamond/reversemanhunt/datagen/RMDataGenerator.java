@@ -4,28 +4,35 @@ import net.laserdiamond.laserutils.datagen.LUDataGenerator;
 import net.laserdiamond.laserutils.datagen.LUItemModelProvider;
 import net.laserdiamond.laserutils.datagen.LULanguageProvider;
 import net.laserdiamond.laserutils.util.registry.LanguageRegistry;
+import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.laserdiamond.reversemanhunt.item.RMItems;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.DataGenerator;
 import net.minecraft.data.PackOutput;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.CompletableFuture;
+
 public final class RMDataGenerator extends LUDataGenerator<RMDataGenerator> {
 
-    public RMDataGenerator(String modId, IEventBus eventBus) {
-        super(modId, eventBus);
+    public RMDataGenerator(IEventBus eventBus) {
+        super(ReverseManhunt.MODID, eventBus);
     }
 
     @Override
-    protected DeferredRegister<Item> itemDeferredRegister() {
-        return RMItems.ITEMS;
-    }
+    protected void additionalGatherData(GatherDataEvent event)
+    {
+        DataGenerator dataGenerator = event.getGenerator();
+        PackOutput packOutput = dataGenerator.getPackOutput();
+        ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
+        CompletableFuture<HolderLookup.Provider> lookUpProvider = event.getLookupProvider();
 
-    @Override
-    protected LUItemModelProvider<RMDataGenerator> itemModelProvider(PackOutput packOutput, ExistingFileHelper existingFileHelper) {
-        return new RMItemModelProvider(packOutput, this, existingFileHelper);
+        dataGenerator.addProvider(event.includeClient(), new RMSoundProvider(packOutput, existingFileHelper));
     }
 
     @Override

@@ -4,6 +4,11 @@ import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameEndAnnounceS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -23,6 +28,7 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         this.hunters = hunters;
         this.speedRunners = speedRunners;
         RMGameState.setCurrentGameState(this.gameState()); // Set to the game state specified
+        RMPackets.sendToAllClients(new GameStateS2CPacket(this.gameState())); // Send to all clients
     }
 
     /**
@@ -64,21 +70,37 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             RMGameState.resetGameTime(); // Reset the game time
             for (Player player : this.speedRunners)
             {
+                RMGameState.logPlayerUUID(player); // Log the player for this iteration of the game
                 player.tickCount = 0; // Reset tick counts
                 player.setHealth(player.getMaxHealth()); // Reset back to max health
                 player.getFoodData().eat(200, 1.0F); // Reset food level
 
+                if (!player.level().isClientSide) // Are we on the server?
+                {
+                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                    {
+                        playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
+                        playerSpeedRunner.setWasLastKilledByHunter(false);
+                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
+                    });
+                    player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                    {
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), player);
+                    });
+                }
+            }
+            for (Player player : this.hunters)
+            {
+                RMGameState.logPlayerUUID(player); // Log the player for this iteration of the game
+                player.tickCount = 0; // Reset tick counts
+                player.setHealth(player.getMaxHealth()); // Reset back to max health
+                player.getFoodData().eat(200, 1.0F); // Reset food level
                 player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
                 {
                     playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
                     playerSpeedRunner.setWasLastKilledByHunter(false);
+                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
                 });
-            }
-            for (Player player : this.hunters)
-            {
-                player.tickCount = 0; // Reset tick counts
-                player.setHealth(player.getMaxHealth()); // Reset back to max health
-                player.getFoodData().eat(200, 1.0F); // Reset food level
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
                     if (playerHunter.isHunter()) // Ensure that the player is a hunter
@@ -110,6 +132,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         {
             super(hunters, speedRunners);
             this.reason = reason;
+            RMPackets.sendToAllClients(new GameEndAnnounceS2CPacket(this.reason));
+            RMGameState.wipeLoggedPlayerUUIDs(); // Wipe the logged players
             for (Player player : this.hunters)
             {
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
@@ -121,9 +145,14 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                         {
                             player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterAttributes()); // Remove buffed attributes
                         }
+                        // Reset all players from being a hunter
+                        playerHunter.setHunter(false);
+                        playerHunter.setBuffed(false);
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), player);
                     }
                 });
             }
+            // TODO: Reset prowler theme timer for speed runners (and hunters too)
         }
 
         public Reason getReason() {
@@ -150,7 +179,19 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             /**
              * The game was ended using the {@linkplain net.laserdiamond.reversemanhunt.commands.ReverseManhuntGameCommands Reverse Manhunt Game Command}
              */
-            COMMAND
+            COMMAND;
+
+            public static Reason fromOrdinal(int value)
+            {
+                for (Reason reason : values())
+                {
+                    if (reason.ordinal() == value)
+                    {
+                        return reason;
+                    }
+                }
+                return null;
+            }
         }
     }
 
@@ -196,6 +237,10 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             super(hunters, speedRunners);
             for (Player player : hunters)
             {
+                if (!RMGameState.containsLoggedPlayerUUID(player)) // Check if we have this player logged
+                {
+                    RMGameState.logPlayerUUID(player); // Log them
+                }
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
                     if (playerHunter.isHunter()) // Ensure that the player is a hunter

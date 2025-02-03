@@ -1,7 +1,7 @@
-package net.laserdiamond.reversemanhunt.network.packet;
+package net.laserdiamond.reversemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.capability.client.ClientSpeedRunnerLives;
+import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientSpeedRunnerLives;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
@@ -28,7 +28,9 @@ public class SpeedRunnerLifeChangeS2CPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context) {
+    public void packetWork(CustomPayloadEvent.Context context)
+    {
+        // ON CLIENT
         ClientSpeedRunnerLives.setLives(this.lives);
         ClientSpeedRunnerLives.setWasLastKilledByHunter(this.wasLastKilledByHunter);
     }

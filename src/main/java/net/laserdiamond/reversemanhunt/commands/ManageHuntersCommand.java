@@ -7,7 +7,7 @@ import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
-import net.laserdiamond.reversemanhunt.network.packet.HunterChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -128,8 +128,8 @@ public class ManageHuntersCommand {
     {
         switch (reason)
         {
-            case ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getDisplayName() + ChatFormatting.RED + " is already a hunter!"));
-            case NOT_ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getDisplayName() + ChatFormatting.RED + " already not a hunter!"));
+            case ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getName() + ChatFormatting.RED + " is already a hunter!"));
+            case NOT_ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getName() + ChatFormatting.RED + " is already not a hunter!"));
             case GAME_RUNNING -> source.sendFailure(Component.literal(ChatFormatting.RED + "A Reverse Manhunt game is currently in progress. Please pause or stop the game to add/remove hunters"));
         }
     }

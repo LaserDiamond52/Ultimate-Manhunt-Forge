@@ -1,10 +1,23 @@
 package net.laserdiamond.reversemanhunt;
 
+import net.laserdiamond.laserutils.util.raycast.AbstractRayCast;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
+import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.event.HuntersReleasedEvent;
 import net.laserdiamond.reversemanhunt.event.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.SpeedRunnerDistanceS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
+import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
+import net.laserdiamond.reversemanhunt.util.RMMath;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -12,20 +25,56 @@ import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
 public class RMGameState {
 
+    /**
+     * The current {@linkplain State state} of the Reverse Manhunt game on the SERVER
+     */
     private static State currentGameState = State.NOT_STARTED;
 
-    public static final int HUNTER_GRACE_PERIOD_TICKS = 6000; // 5 minutes
+    /**
+     * The time in ticks that speed runners have a head start before hunters are released
+     */
+    public static final int HUNTER_GRACE_PERIOD_TICKS = 1800; // 90 seconds
 
-    public static final int SPEED_RUNNER_GRACE_PERIOD_TICKS = 2400; // 2 minutes
+    /**
+     * The time in ticks that speed runners cannot be harmed by a hunter after being killed by a hunter
+     */
+    public static final int SPEED_RUNNER_GRACE_PERIOD_TICKS = 600; // 30 seconds
 
+    /**
+     * Amount of lives speed runners have
+     */
     public static final int SPEED_RUNNER_LIVES = 3; // Speed runners have 3 lives
 
+    /**
+     * Friendly fire
+     */
     public static final boolean FRIENDLY_FIRE = true; // Determines if speed runners can attack other speed runners, and if hunters can attack other hunters
+
+    /**
+     * Determines if speed runners lose a life if they die from a cause unrelated to a hunter
+     */
+    public static final boolean HARDCORE = false; // Determines if a speed runner loses a life if they die at all
+
+    /**
+     * Hunter's tracking distance to find speed runners
+     */
+    private static final int HUNTER_TRACKING_RANGE = 5000;
+
+    /**
+     * Detection range for hunters for speed runners
+     */
+    private static final int HUNTER_DETECTION_RANGE = 50;
+
+    /**
+     * A {@link Set} of player UUIDs for the people currently in an iteration of the game
+     */
+    private static final Set<UUID> LOGGED_PLAYER_UUIDS = new HashSet<>();
 
     /**
      * @return The current {@linkplain State game state} of the Reverse Manhunt game
@@ -53,9 +102,47 @@ public class RMGameState {
         return currentGameTime;
     }
 
+    /**
+     * @return True if the {@linkplain #currentGameTime} is still less than the {@linkplain #HUNTER_GRACE_PERIOD_TICKS hunter grace period time stamp}
+     */
     public static boolean areHuntersOnGracePeriod()
     {
         return currentGameTime < HUNTER_GRACE_PERIOD_TICKS;
+    }
+
+    /**
+     * @return A {@link Set} of player UUIDs for the current iteration of the game
+     */
+    public static Set<UUID> getLoggedPlayerUUIDs()
+    {
+        return new HashSet<>(LOGGED_PLAYER_UUIDS);
+    }
+
+    /**
+     * Wipes all the player UUIDs from the {@linkplain #LOGGED_PLAYER_UUIDS Logged Player UUIDs}
+     */
+    public static void wipeLoggedPlayerUUIDs()
+    {
+        LOGGED_PLAYER_UUIDS.clear();
+    }
+
+    /**
+     * Adds a {@linkplain Player player's} UUID to the current {@linkplain #LOGGED_PLAYER_UUIDS set of logged players}
+     * @param player The {@linkplain Player player} to add
+     */
+    public static void logPlayerUUID(Player player)
+    {
+        LOGGED_PLAYER_UUIDS.add(player.getUUID());
+    }
+
+    /**
+     * Checks if the {@linkplain Player player} is logged for the current iteration of the game
+     * @param player The {@linkplain Player player} to check
+     * @return True if the {@linkplain Player player} is currently logged, false otherwise
+     */
+    public static boolean containsLoggedPlayerUUID(Player player)
+    {
+        return LOGGED_PLAYER_UUIDS.contains(player.getUUID());
     }
 
     public static boolean isSpeedRunnerOnGracePeriod(Player player)
@@ -78,18 +165,30 @@ public class RMGameState {
         if (State.isGameRunning())
         {
             currentGameTime++; // Increment the current game time for as long as the game is running
-//            ReverseManhunt.LOGGER.info("Current game time: " + currentGameTime);
+            RMPackets.sendToAllClients(new GameTimeS2CPacket(currentGameTime)); // Send current time to all client
+
         }
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent.Post event)
+    public static void onPlayerServerTick(TickEvent.PlayerTickEvent.Post event)
     {
         Player player = event.player;
 
         if (event.side == LogicalSide.CLIENT)
         {
             return;
+        }
+
+        Level level = player.level();
+        if (level.isClientSide)
+        {
+            return;
+        }
+
+        if (currentGameTime == HUNTER_GRACE_PERIOD_TICKS) // Has the grace period just ended?
+        {
+            MinecraftForge.EVENT_BUS.post(new HuntersReleasedEvent(PlayerHunter.getHunters(), PlayerSpeedRunner.getRemainingSpeedRunners())); // Post release event
         }
 
         player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
@@ -108,18 +207,102 @@ public class RMGameState {
 
                 if (State.isGameRunning()) // Is a game in progress?
                 {
-//                    if (areHuntersOnGracePeriod()) // Are hunters on grace period
-//                    {
-//                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // On grace period. Add attributes
-//                    }
-                    if (currentGameTime == HUNTER_GRACE_PERIOD_TICKS) // Has the grace period just ended?
+                    if (currentGameTime < HUNTER_GRACE_PERIOD_TICKS)
                     {
-                        MinecraftForge.EVENT_BUS.post(new HuntersReleasedEvent(PlayerHunter.getHunters())); // Post release event
+                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
+                    }
+
+                    HashMap<UUID, Float> playerDistances = new HashMap<>();
+                    for (Player nearbyPlayer : level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_TRACKING_RANGE), RMGameState::isSpeedRunner))
+                    {
+                        Level nearLevel = nearbyPlayer.level();
+                        if (!level.dimension().equals(nearLevel.dimension()))
+                        {
+                            continue;
+                        }
+                        float distance = player.distanceTo(nearbyPlayer);
+                        playerDistances.put(nearbyPlayer.getUUID(), distance);
+                    }
+
+                    if (playerDistances.isEmpty())
+                    {
+                        RMPackets.sendToPlayer(new SpeedRunnerDistanceS2CPacket(false, player.getUUID(), 0F), player);
+                        return;
+                    }
+
+                    float smallestDistance = RMMath.getLeast(playerDistances.values().stream().toList());
+                    for (Map.Entry<UUID, Float> entry : playerDistances.entrySet())
+                    {
+                        if (entry.getValue() == smallestDistance)
+                        {
+                            RMPackets.sendToPlayer(new SpeedRunnerDistanceS2CPacket(true, entry.getKey(), entry.getValue()), player);
+                            return;
+                        }
                     }
                 }
+            } else // Player is not a hunter
+            {
+                if (State.isGameRunning())
+                {
+                    if (currentGameTime > HUNTER_GRACE_PERIOD_TICKS) // Is hunter grace period over?
+                    {
+                        List<Player> hunters = level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_DETECTION_RANGE), RMGameState::isHunter);
+                        SoundManager sm = SoundManager.INSTANCE;
 
+                        if (player instanceof  ServerPlayer serverPlayer)
+                        {
+                            if (!hunters.isEmpty()) // Was a hunter near?
+                            {
+                                // Hunter nearby
+                                sm.increment(player);
+                                if (player.tickCount % 6 == 0) // ~180 bpm
+                                {
+                                    serverPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+                                }
+                                if (sm.getSoundTime(player) == 1)
+                                {
+                                    serverPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HUNTER_DETECTED.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+
+                                }
+                                RMPackets.sendToPlayer(new HunterDetectionS2CPacket(true), player);
+
+                            } else // No hunter near
+                            {
+                                sm.reset(player);
+                                RMPackets.sendToPlayer(new HunterDetectionS2CPacket(false), player);
+                                serverPlayer.connection.send(new ClientboundStopSoundPacket(RMSoundEvents.HUNTER_DETECTED.getId(), SoundSource.PLAYERS));
+
+                            }
+                        }
+
+                    }
+                }
             }
         });
+    }
+
+    private static boolean isSpeedRunner(Player player)
+    {
+        for (Player target : PlayerSpeedRunner.getRemainingSpeedRunners())
+        {
+            if (target.getUUID() == player.getUUID())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isHunter(Player player)
+    {
+        for (Player target : PlayerHunter.getHunters())
+        {
+            if (target.getUUID() == player.getUUID())
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -162,14 +345,14 @@ public class RMGameState {
         STARTED,
 
         /**
-         * A Reverse Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after using the {@linkplain net.laserdiamond.reversemanhunt.commands.ReverseManhuntGameCommands Reverse Manhunt Game Command}
+         * A Reverse Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after resuming the game using the {@linkplain net.laserdiamond.reversemanhunt.commands.ReverseManhuntGameCommands Reverse Manhunt Game Command}
          */
         IN_PROGRESS,
 
         /**
          * A Reverse Manhunt game is on pause.
          * This state is reached if the game is put on pause by the use of the {@linkplain net.laserdiamond.reversemanhunt.commands.ReverseManhuntGameCommands Reverse Manhunt Game Command}.
-         * <p>While the Reverse Manhunt game is in this state, Speed Runners cannot lose lives, and the Ender Dragon cannot be damaged</p>
+         * <p>While the Reverse Manhunt game is in this state, Speed Runners cannot lose lives, the Ender Dragon cannot be damaged, and Hunters cannot track speed runners</p>
          */
         PAUSED,
 
@@ -203,5 +386,64 @@ public class RMGameState {
         {
             return isGameRunning() || currentGameState == PAUSED;
         }
+
+        public static State fromOrdinal(int value)
+        {
+            for (State state : values())
+            {
+                if (state.ordinal() == value)
+                {
+                    return state;
+                }
+            }
+            return null;
+        }
     }
+
+    private static class SoundManager
+    {
+        public static final SoundManager INSTANCE = new SoundManager();
+
+        private static final int SOUND_DURATION_TICKS = 825;
+        private final HashMap<UUID, Integer> timings;
+
+        private SoundManager()
+        {
+            this.timings = new HashMap<>();
+        }
+
+        public void increment(Player player)
+        {
+            if (!this.hasKey(player) || this.timings.get(player.getUUID()) >= SOUND_DURATION_TICKS)
+            {
+                this.timings.put(player.getUUID(), 0); // Reset time back if time is over or if player has no value
+                return;
+            }
+            Integer value = this.timings.get(player.getUUID());
+            if (value != null)
+            {
+                this.timings.put(player.getUUID(), value + 1);
+            }
+        }
+
+        public int getSoundTime(Player player)
+        {
+            if (!this.hasKey(player))
+            {
+                return 0;
+            }
+            return this.timings.get(player.getUUID());
+        }
+
+        public boolean hasKey(Player player)
+        {
+            return this.timings.get(player.getUUID()) != null && this.timings.containsKey(player.getUUID());
+        }
+
+        public void reset(Player player)
+        {
+            this.timings.put(player.getUUID(), 0);
+        }
+    }
+
 }

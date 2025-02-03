@@ -1,7 +1,7 @@
-package net.laserdiamond.reversemanhunt.network.packet;
+package net.laserdiamond.reversemanhunt.network.packet.hunter;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.capability.client.ClientHunter;
+import net.laserdiamond.reversemanhunt.capability.client.hunter.ClientHunter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
@@ -31,6 +31,7 @@ public class HunterChangeS2CPacket extends NetworkPacket {
     @Override
     public void packetWork(CustomPayloadEvent.Context context)
     {
+        // ON CLIENT
         ClientHunter.setHunter(this.hunter);
         ClientHunter.setBuffed(this.buffed);
     }
