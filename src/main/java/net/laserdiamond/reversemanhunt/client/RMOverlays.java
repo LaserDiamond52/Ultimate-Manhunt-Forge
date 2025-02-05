@@ -9,6 +9,7 @@ import net.laserdiamond.reversemanhunt.capability.client.game.ClientGameState;
 import net.laserdiamond.reversemanhunt.capability.client.game.ClientGameTime;
 import net.laserdiamond.reversemanhunt.capability.client.hunter.ClientHunter;
 import net.laserdiamond.reversemanhunt.capability.client.hunter.ClientSpeedRunnerDistance;
+import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientDistanceFromHunter;
 import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientSpeedRunnerHunterDetection;
 import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientSpeedRunnerLives;
 import net.minecraft.ChatFormatting;
@@ -62,6 +63,8 @@ public class RMOverlays implements LayeredDraw.Layer {
         LayeredDraw mcLayers = MINECRAFT.gui.layers;
         mcLayers.add(layeredDraw, () -> !MINECRAFT.options.hideGui)
                 .add(new SpeedRunnerHunterDetectionOverlay());
+
+        // TODO: Add hunter detection overlay BEFORE other HUD elements
     }
 
     @Override
@@ -214,6 +217,7 @@ public class RMOverlays implements LayeredDraw.Layer {
             int lives = ClientSpeedRunnerLives.getLives();
             boolean isNearHunter = ClientSpeedRunnerHunterDetection.isNearHunter();
             boolean isRunning = ClientGameState.isGameRunning();
+            float distanceFromHunter = ClientDistanceFromHunter.getDistance();
 
             // TODO: Get distance between speed runner and hunter to determine alpha value for overlay
 
@@ -236,11 +240,13 @@ public class RMOverlays implements LayeredDraw.Layer {
                 {
                     if (isNearHunter)
                     {
+                        float red = -(distanceFromHunter / 110F) + 0.9F;
+
                         RenderSystem.disableDepthTest();
                         RenderSystem.depthMask(false);
                         RenderSystem.enableBlend();
                         RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
-                        pGuiGraphics.setColor(0.8F, 0.2F, 0.2F, 1.0F);
+                        pGuiGraphics.setColor(red, 0.1F, 0.1F, 1.0F);
                         pGuiGraphics.blit(GameRenderer.NAUSEA_LOCATION, 0, 0, -90, 0.0F, 0.0F, width, height, width, height);
                         pGuiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
                         RenderSystem.defaultBlendFunc();

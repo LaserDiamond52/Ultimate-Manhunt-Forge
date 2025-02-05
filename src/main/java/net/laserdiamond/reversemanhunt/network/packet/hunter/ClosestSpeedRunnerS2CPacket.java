@@ -7,20 +7,23 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import java.util.UUID;
 
-public class SpeedRunnerDistanceS2CPacket extends NetworkPacket {
+/**
+ * Packet sent from the SERVER to the CLIENT that helps hunters find the closest speed runner to them
+ */
+public class ClosestSpeedRunnerS2CPacket extends NetworkPacket {
 
     private final boolean speedRunnersPresent;
     private final UUID playerUUID;
     private final float distance;
 
-    public SpeedRunnerDistanceS2CPacket(boolean speedRunnersPresent, UUID playerUUID, float distance)
+    public ClosestSpeedRunnerS2CPacket(boolean speedRunnersPresent, UUID playerUUID, float distance)
     {
         this.speedRunnersPresent = speedRunnersPresent;
         this.playerUUID = playerUUID;
         this.distance = distance;
     }
 
-    public SpeedRunnerDistanceS2CPacket(FriendlyByteBuf buf)
+    public ClosestSpeedRunnerS2CPacket(FriendlyByteBuf buf)
     {
         this.speedRunnersPresent = buf.readBoolean();
         this.playerUUID = buf.readUUID();

@@ -13,6 +13,7 @@ import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
@@ -225,8 +226,11 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event)
     {
-
-
+        Player player = event.getEntity();
+        if (!player.level().isClientSide)
+        {
+            RMSoundEvents.stopFlatlineSound(player); // Stop heart flatline on respawn
+        }
     }
 
 //    @SubscribeEvent

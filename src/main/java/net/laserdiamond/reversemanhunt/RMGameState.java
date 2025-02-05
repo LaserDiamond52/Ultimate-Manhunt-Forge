@@ -8,7 +8,8 @@ import net.laserdiamond.reversemanhunt.event.HuntersReleasedEvent;
 import net.laserdiamond.reversemanhunt.event.ReverseManhuntGameStateEvent;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.SpeedRunnerDistanceS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.ClosestSpeedRunnerS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.laserdiamond.reversemanhunt.util.RMMath;
@@ -211,7 +212,6 @@ public class RMGameState {
                     {
                         player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
                     }
-
                     HashMap<UUID, Float> playerDistances = new HashMap<>();
                     for (Player nearbyPlayer : level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_TRACKING_RANGE), RMGameState::isSpeedRunner))
                     {
@@ -222,11 +222,39 @@ public class RMGameState {
                         }
                         float distance = player.distanceTo(nearbyPlayer);
                         playerDistances.put(nearbyPlayer.getUUID(), distance);
+                        RMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), nearbyPlayer); // Tell nearby player how far they are from the hunter
+
+                        if (currentGameTime > HUNTER_GRACE_PERIOD_TICKS) // Is hunter out of grace period?
+                        {
+                            if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
+                            {
+                                if (nearbyPlayer instanceof ServerPlayer nearServerPlayer)
+                                {
+                                    if (nearbyPlayer.isAlive()) // Is the player alive?
+                                    {
+                                        if (nearbyPlayer.tickCount % 6 == 0) // ~180 bpm
+                                        {
+                                            nearServerPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+                                        }
+                                        RMSoundEvents.playDetectionSound(nearbyPlayer); // Play detection sound
+                                    } else // Player is not alive
+                                    {
+                                        if (nearbyPlayer.tickCount % 120 == 0)
+                                        {
+                                            RMSoundEvents.playFlatlineSound(player);
+                                        }
+                                    }
+                                }
+                            } else // Not close enough to notify hunter
+                            {
+                                RMSoundEvents.stopDetectionSound(nearbyPlayer);
+                            }
+                        }
                     }
 
                     if (playerDistances.isEmpty())
                     {
-                        RMPackets.sendToPlayer(new SpeedRunnerDistanceS2CPacket(false, player.getUUID(), 0F), player);
+                        RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(false, player.getUUID(), 0F), player);
                         return;
                     }
 
@@ -235,48 +263,39 @@ public class RMGameState {
                     {
                         if (entry.getValue() == smallestDistance)
                         {
-                            RMPackets.sendToPlayer(new SpeedRunnerDistanceS2CPacket(true, entry.getKey(), entry.getValue()), player);
+                            RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(true, entry.getKey(), entry.getValue()), player);
                             return;
                         }
                     }
                 }
             } else // Player is not a hunter
             {
-                if (State.isGameRunning())
-                {
-                    if (currentGameTime > HUNTER_GRACE_PERIOD_TICKS) // Is hunter grace period over?
-                    {
-                        List<Player> hunters = level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_DETECTION_RANGE), RMGameState::isHunter);
-                        SoundManager sm = SoundManager.INSTANCE;
-
-                        if (player instanceof  ServerPlayer serverPlayer)
-                        {
-                            if (!hunters.isEmpty()) // Was a hunter near?
-                            {
-                                // Hunter nearby
-                                sm.increment(player);
-                                if (player.tickCount % 6 == 0) // ~180 bpm
-                                {
-                                    serverPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
-                                }
-                                if (sm.getSoundTime(player) == 1)
-                                {
-                                    serverPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HUNTER_DETECTED.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
-
-                                }
-                                RMPackets.sendToPlayer(new HunterDetectionS2CPacket(true), player);
-
-                            } else // No hunter near
-                            {
-                                sm.reset(player);
-                                RMPackets.sendToPlayer(new HunterDetectionS2CPacket(false), player);
-                                serverPlayer.connection.send(new ClientboundStopSoundPacket(RMSoundEvents.HUNTER_DETECTED.getId(), SoundSource.PLAYERS));
-
-                            }
-                        }
-
-                    }
-                }
+//                if (State.isGameRunning())
+//                {
+//                    if (currentGameTime > HUNTER_GRACE_PERIOD_TICKS) // Is hunter grace period over?
+//                    {
+//                        List<Player> hunters = level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_DETECTION_RANGE), RMGameState::isHunter);
+//
+//                        if (player instanceof  ServerPlayer serverPlayer)
+//                        {
+//                            if (!hunters.isEmpty()) // Was a hunter near?
+//                            {
+//                                // Hunter nearby
+//                                if (player.tickCount % 6 == 0) // ~180 bpm
+//                                {
+//                                    serverPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+//                                }
+//                                RMSoundEvents.playDetectionSound(player);
+//
+//                            } else // No hunter near
+//                            {
+//                                RMSoundEvents.stopDetectionSound(player);
+//
+//                            }
+//                        }
+//
+//                    }
+//                }
             }
         });
     }
@@ -397,52 +416,6 @@ public class RMGameState {
                 }
             }
             return null;
-        }
-    }
-
-    private static class SoundManager
-    {
-        public static final SoundManager INSTANCE = new SoundManager();
-
-        private static final int SOUND_DURATION_TICKS = 825;
-        private final HashMap<UUID, Integer> timings;
-
-        private SoundManager()
-        {
-            this.timings = new HashMap<>();
-        }
-
-        public void increment(Player player)
-        {
-            if (!this.hasKey(player) || this.timings.get(player.getUUID()) >= SOUND_DURATION_TICKS)
-            {
-                this.timings.put(player.getUUID(), 0); // Reset time back if time is over or if player has no value
-                return;
-            }
-            Integer value = this.timings.get(player.getUUID());
-            if (value != null)
-            {
-                this.timings.put(player.getUUID(), value + 1);
-            }
-        }
-
-        public int getSoundTime(Player player)
-        {
-            if (!this.hasKey(player))
-            {
-                return 0;
-            }
-            return this.timings.get(player.getUUID());
-        }
-
-        public boolean hasKey(Player player)
-        {
-            return this.timings.get(player.getUUID()) != null && this.timings.containsKey(player.getUUID());
-        }
-
-        public void reset(Player player)
-        {
-            this.timings.put(player.getUUID(), 0);
         }
     }
 

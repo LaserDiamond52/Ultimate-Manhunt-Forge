@@ -2,7 +2,6 @@ package net.laserdiamond.reversemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientSpeedRunnerHunterDetection;
-import net.laserdiamond.reversemanhunt.sound.HunterDetectionSoundInstance;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;

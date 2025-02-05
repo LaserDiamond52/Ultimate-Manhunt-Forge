@@ -51,6 +51,7 @@ public class PlayerSpeedRunner {
     public static List<Player> getRemainingSpeedRunners()
     {
         List<Player> ret = new ArrayList<>();
+        // Get all online players
         for (Player player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers())
         {
             player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->

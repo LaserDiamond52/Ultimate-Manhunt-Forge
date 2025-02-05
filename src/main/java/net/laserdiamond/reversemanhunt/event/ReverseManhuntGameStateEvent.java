@@ -8,7 +8,12 @@ import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameEndAnnounceS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
+import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -95,12 +100,16 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                 player.tickCount = 0; // Reset tick counts
                 player.setHealth(player.getMaxHealth()); // Reset back to max health
                 player.getFoodData().eat(200, 1.0F); // Reset food level
-                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+
+                if (!player.level().isClientSide)
                 {
-                    playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
-                    playerSpeedRunner.setWasLastKilledByHunter(false);
-                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
-                });
+                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                    {
+                        playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
+                        playerSpeedRunner.setWasLastKilledByHunter(false);
+                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
+                    });
+                }
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
                     if (playerHunter.isHunter()) // Ensure that the player is a hunter
@@ -133,9 +142,11 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             super(hunters, speedRunners);
             this.reason = reason;
             RMPackets.sendToAllClients(new GameEndAnnounceS2CPacket(this.reason));
+            RMPackets.sendToAllClients(new HunterDetectionS2CPacket(false));
             RMGameState.wipeLoggedPlayerUUIDs(); // Wipe the logged players
             for (Player player : this.hunters)
             {
+                RMSoundEvents.stopDetectionSound(player);
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
                     if (playerHunter.isHunter()) // Ensure player is a hunter
@@ -152,7 +163,10 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     }
                 });
             }
-            // TODO: Reset prowler theme timer for speed runners (and hunters too)
+            for (Player player : this.speedRunners)
+            {
+                RMSoundEvents.stopDetectionSound(player);
+            }
         }
 
         public Reason getReason() {
