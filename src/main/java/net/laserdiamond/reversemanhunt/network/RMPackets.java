@@ -6,14 +6,9 @@ import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameEndAnnounceS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeC2SPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterReleaseAnnounceS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.ClosestSpeedRunnerS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeC2SPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.*;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -56,6 +51,7 @@ public class RMPackets {
         registerSpeedRunnerPackets();
         registerHunterPackets();
 
+
     }
 
     private static void registerSpeedRunnerPackets()
@@ -71,6 +67,9 @@ public class RMPackets {
 
         // Speed Runner distance from hunter server to client
         registerPacket(CloseDistanceFromHunterS2CPacket.class, CloseDistanceFromHunterS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Speed Runner Grace Period server to client
+        registerPacket(SpeedRunnerGracePeriodDurationS2CPacket.class, SpeedRunnerGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     private static void registerHunterPackets()
@@ -87,6 +86,8 @@ public class RMPackets {
         // Hunter release announcement server to client
         registerPacket(HunterReleaseAnnounceS2CPacket.class, HunterReleaseAnnounceS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
+        // Hunter Grace Period server to client
+        registerPacket(HunterGracePeriodDurationS2CPacket.class, HunterGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     private static void registerGamePackets()
@@ -100,6 +101,8 @@ public class RMPackets {
         // Game End Announcement server to client
         registerPacket(GameEndAnnounceS2CPacket.class, GameEndAnnounceS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
+        // Hardcore update server to client
+        registerPacket(HardcoreUpdateS2CPacket.class, HardcoreUpdateS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     public static <P extends NetworkPacket> void registerPacket(Class<P> packetClazz, Function<RegistryFriendlyByteBuf, P> decoder, NetworkDirection<RegistryFriendlyByteBuf> direction)

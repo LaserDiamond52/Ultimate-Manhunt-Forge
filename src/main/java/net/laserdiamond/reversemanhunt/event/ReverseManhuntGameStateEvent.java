@@ -4,6 +4,7 @@ import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.item.RMItems;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameEndAnnounceS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
@@ -11,9 +12,7 @@ import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPack
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
-import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -78,6 +77,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                 RMGameState.logPlayerUUID(player); // Log the player for this iteration of the game
                 player.tickCount = 0; // Reset tick counts
                 player.setHealth(player.getMaxHealth()); // Reset back to max health
+                player.getInventory().clearContent(); // Clear items
+                player.setItemSlot(EquipmentSlot.MAINHAND, RMItems.WIND_TORCH.get().getDefaultInstance()); // Give wind torch
                 player.getFoodData().eat(200, 1.0F); // Reset food level
 
                 if (!player.level().isClientSide) // Are we on the server?
@@ -86,13 +87,17 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     {
                         playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
                         playerSpeedRunner.setWasLastKilledByHunter(false);
-                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
+                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
                     });
                     player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                     {
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), player);
+                        // Speed runner is not a hunter or a buffed hunter
+                        playerHunter.setHunter(false);
+                        playerHunter.setBuffed(false);
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
                     });
                 }
+
             }
             for (Player player : this.hunters)
             {
@@ -107,20 +112,20 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     {
                         playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
                         playerSpeedRunner.setWasLastKilledByHunter(false);
-                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner.getLives(), playerSpeedRunner.getWasLastKilledByHunter()), player);
+                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                    });
+                    player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                    {
+                        if (playerHunter.isHunter()) // Ensure that the player is a hunter
+                        {
+                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Add spawn attributes
+                            if (playerHunter.isBuffed()) // Add buff attributes
+                            {
+                                player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
+                            }
+                        }
                     });
                 }
-                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-                {
-                    if (playerHunter.isHunter()) // Ensure that the player is a hunter
-                    {
-                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Add spawn attributes
-                        if (playerHunter.isBuffed()) // Add buff attributes
-                        {
-                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
-                        }
-                    }
-                });
             }
         }
 
@@ -149,23 +154,32 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                 RMSoundEvents.stopDetectionSound(player);
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
-                    if (playerHunter.isHunter()) // Ensure player is a hunter
+                    player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Remove spawn attributes
+                    if (playerHunter.isBuffed()) // Check if buffed
                     {
-                        player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Remove spawn attributes
-                        if (playerHunter.isBuffed()) // Check if buffed
-                        {
-                            player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterAttributes()); // Remove buffed attributes
-                        }
-                        // Reset all players from being a hunter
-                        playerHunter.setHunter(false);
-                        playerHunter.setBuffed(false);
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), player);
+                        player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterAttributes()); // Remove buffed attributes
                     }
+                    // Reset all players from being a hunter
+                    playerHunter.setHunter(false);
+                    playerHunter.setBuffed(false);
+                    RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
+                });
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                {
+                    playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES);
+                    playerSpeedRunner.setWasLastKilledByHunter(false);
+                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
                 });
             }
             for (Player player : this.speedRunners)
             {
                 RMSoundEvents.stopDetectionSound(player);
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                {
+                    playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES);
+                    playerSpeedRunner.setWasLastKilledByHunter(false);
+                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                });
             }
         }
 
@@ -269,6 +283,13 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                         }
                     }
                 });
+            }
+            for (Player player : speedRunners)
+            {
+                if (!RMGameState.containsLoggedPlayerUUID(player))
+                {
+                    RMGameState.logPlayerUUID(player);
+                }
             }
         }
 

@@ -1,6 +1,13 @@
-package net.laserdiamond.reversemanhunt.capability.client.speedrunner;
+package net.laserdiamond.reversemanhunt.client.speedrunner;
 
 import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.client.hunter.ClientHunter;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientSpeedRunnerLives {
 

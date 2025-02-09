@@ -47,7 +47,7 @@ public class RMSoundEvents {
             if (sm.getSoundTime(player) == 0)
             {
                 Level level = player.level();
-                serverPlayer.connection.send(new ClientboundSoundPacket(HUNTER_DETECTED.getHolder().get(), SoundSource.MUSIC, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+                serverPlayer.connection.send(new ClientboundSoundPacket(HUNTER_DETECTED.getHolder().get(), SoundSource.MUSIC, player.getX(), player.getY(), player.getZ(), 50, 1.0F, level.getRandom().nextLong()));
             }
             sm.increment(player);
         }
@@ -78,7 +78,6 @@ public class RMSoundEvents {
     {
         if (player instanceof ServerPlayer serverPlayer)
         {
-            Level level = player.level();
             serverPlayer.connection.send(new ClientboundStopSoundPacket(HEAT_BEAT_FLATLINE.getId(), SoundSource.PLAYERS));
         }
     }

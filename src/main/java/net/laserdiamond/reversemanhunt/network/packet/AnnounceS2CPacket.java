@@ -1,6 +1,7 @@
 package net.laserdiamond.reversemanhunt.network.packet;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
+import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.network.CustomPayloadEvent;

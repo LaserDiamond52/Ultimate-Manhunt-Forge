@@ -99,10 +99,10 @@ public class ManageHuntersCommand {
 
                     if (isBuffed)
                     {
-                        source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getDisplayName() + ChatFormatting.WHITE + " to be a " + ChatFormatting.DARK_RED + "Buffed Hunter"), true);
+                        source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getName().getString() + ChatFormatting.WHITE + " to be a " + ChatFormatting.DARK_RED + "Buffed Hunter"), true);
                     } else
                     {
-                        source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getDisplayName() + ChatFormatting.WHITE + " to be a " + ChatFormatting.DARK_RED + "Hunter"), true);
+                        source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getName().getString() + ChatFormatting.WHITE + " to be a " + ChatFormatting.DARK_RED + "Hunter"), true);
                     }
                 }
             }
@@ -118,7 +118,7 @@ public class ManageHuntersCommand {
                         serverPlayer.sendSystemMessage(Component.literal("You are no longer a " + ChatFormatting.DARK_RED + "Hunter"));
                     }
 
-                    source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getDisplayName() + ChatFormatting.WHITE + " to not be a " + ChatFormatting.DARK_RED + "Hunter"), true);
+                    source.sendSuccess(() -> Component.literal("Set " + ChatFormatting.BLUE + serverPlayer.getName().getString() + ChatFormatting.WHITE + " to not be a " + ChatFormatting.DARK_RED + "Hunter"), true);
                 }
             }
         }
@@ -128,8 +128,8 @@ public class ManageHuntersCommand {
     {
         switch (reason)
         {
-            case ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getName() + ChatFormatting.RED + " is already a hunter!"));
-            case NOT_ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + "" + serverPlayer.getName() + ChatFormatting.RED + " is already not a hunter!"));
+            case ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + serverPlayer.getName().getString() + ChatFormatting.RED + " is already a hunter!"));
+            case NOT_ALREADY_HUNTER -> source.sendFailure(Component.literal(ChatFormatting.BLUE + serverPlayer.getName().getString() + ChatFormatting.RED + " is already not a hunter!"));
             case GAME_RUNNING -> source.sendFailure(Component.literal(ChatFormatting.RED + "A Reverse Manhunt game is currently in progress. Please pause or stop the game to add/remove hunters"));
         }
     }
@@ -150,12 +150,6 @@ public class ManageHuntersCommand {
             {
                 for (ServerPlayer serverPlayer : players)
                 {
-//                    if (!hunterRegistry.isHunter(serverPlayer)) // Check if the player is not a hunter
-//                    {
-//                        hunterRegistry.addHunter(serverPlayer, isBuffed);
-//                        logHunterChange(commandContext.getSource(), serverPlayer, modifier);
-//                        i++;
-//                    }
                     serverPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                     {
                         if (playerHunter.isHunter())
@@ -165,7 +159,7 @@ public class ManageHuntersCommand {
                         }
                         playerHunter.setHunter(true); // Now a hunter
                         playerHunter.setBuffed(isBuffed); // Set if buffed
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), serverPlayer); // Send packet from server to player
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), serverPlayer);
                         logHunterChange(commandContext.getSource(), serverPlayer, modifier, isBuffed);
                         i.getAndIncrement();
                     });
@@ -176,12 +170,6 @@ public class ManageHuntersCommand {
             {
                 for (ServerPlayer serverPlayer : players)
                 {
-//                    if (hunterRegistry.isHunter(serverPlayer)) // Check if the player is a hunter
-//                    {
-//                        hunterRegistry.removeHunter(serverPlayer);
-//                        logHunterChange(commandContext.getSource(), serverPlayer, modifier);
-//                        i++;
-//                    }
                     serverPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                     {
                         if (!playerHunter.isHunter())
@@ -191,7 +179,7 @@ public class ManageHuntersCommand {
                         }
                         playerHunter.setHunter(false); // No longer a hunter
                         playerHunter.setBuffed(false); // No longer buffed
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter.isHunter(), playerHunter.isBuffed()), serverPlayer);
+                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), serverPlayer);
                         logHunterChange(commandContext.getSource(), serverPlayer, modifier, isBuffed);
                         i.getAndIncrement();
                     });

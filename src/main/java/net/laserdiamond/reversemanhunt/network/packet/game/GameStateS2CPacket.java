@@ -2,7 +2,7 @@ package net.laserdiamond.reversemanhunt.network.packet.game;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.reversemanhunt.RMGameState;
-import net.laserdiamond.reversemanhunt.capability.client.game.ClientGameState;
+import net.laserdiamond.reversemanhunt.client.game.ClientGameState;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 

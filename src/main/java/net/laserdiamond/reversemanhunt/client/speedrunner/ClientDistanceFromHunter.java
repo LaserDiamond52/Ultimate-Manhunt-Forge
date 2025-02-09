@@ -1,4 +1,4 @@
-package net.laserdiamond.reversemanhunt.capability.client.speedrunner;
+package net.laserdiamond.reversemanhunt.client.speedrunner;
 
 public class ClientDistanceFromHunter {
 

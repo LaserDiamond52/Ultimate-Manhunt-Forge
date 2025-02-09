@@ -2,6 +2,7 @@ package net.laserdiamond.reversemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;
@@ -32,6 +33,7 @@ public class SpeedRunnerLifeChangeC2SPacket extends NetworkPacket {
         {
             playerSpeedRunner.setLives(this.newLifeCount);
             playerSpeedRunner.setWasLastKilledByHunter(this.wasLastKilledByHunter);
+//            RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), serverPlayer);
         });
     }
 }

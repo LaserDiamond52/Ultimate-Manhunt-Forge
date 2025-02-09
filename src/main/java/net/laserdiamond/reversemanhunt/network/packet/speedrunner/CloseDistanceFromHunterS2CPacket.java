@@ -1,7 +1,7 @@
 package net.laserdiamond.reversemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.capability.client.speedrunner.ClientDistanceFromHunter;
+import net.laserdiamond.reversemanhunt.client.speedrunner.ClientDistanceFromHunter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 

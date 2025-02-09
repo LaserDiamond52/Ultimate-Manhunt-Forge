@@ -1,7 +1,7 @@
 package net.laserdiamond.reversemanhunt.network.packet.game;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.capability.client.game.ClientGameTime;
+import net.laserdiamond.reversemanhunt.client.game.ClientGameTime;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 

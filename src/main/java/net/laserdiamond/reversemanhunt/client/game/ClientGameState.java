@@ -1,4 +1,4 @@
-package net.laserdiamond.reversemanhunt.capability.client.game;
+package net.laserdiamond.reversemanhunt.client.game;
 
 import net.laserdiamond.reversemanhunt.RMGameState;
 

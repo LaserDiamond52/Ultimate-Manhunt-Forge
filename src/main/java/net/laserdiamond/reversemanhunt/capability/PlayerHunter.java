@@ -12,6 +12,8 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.capabilities.AutoRegisterCapability;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -59,20 +61,6 @@ public class PlayerHunter {
         ret.put(Attributes.JUMP_STRENGTH, new AttributeModifier(SPAWN_MODIFIER, -1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(SPAWN_MODIFIER, -1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         return ret;
-    }
-
-    public static void setCapabilityHunterValues(Player player, boolean isHunter, boolean isBuffed, @NotNull LogicalSide fromSide)
-    {
-        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-        {
-            playerHunter.setHunter(isHunter);
-            playerHunter.setBuffed(isBuffed);
-            switch (fromSide)
-            {
-                case CLIENT -> RMPackets.sendToServer(new HunterChangeC2SPacket(isHunter, isBuffed));
-                case SERVER -> RMPackets.sendToPlayer(new HunterChangeS2CPacket(isHunter, isBuffed), player);
-            }
-        });
     }
 
     public static List<Player> getHunters()
@@ -152,5 +140,13 @@ public class PlayerHunter {
     {
         this.hunter = nbt.getBoolean("is_hunter");
         this.buffed = nbt.getBoolean("is_buffed_hunter");
+    }
+
+    public CompoundTag toNBT()
+    {
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean("is_hunter", this.hunter);
+        tag.putBoolean("is_buffed_hunter", this.buffed);
+        return tag;
     }
 }

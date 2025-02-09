@@ -1,4 +1,6 @@
-package net.laserdiamond.reversemanhunt.capability.client.hunter;
+package net.laserdiamond.reversemanhunt.client.hunter;
+
+import net.minecraft.client.player.LocalPlayer;
 
 public class ClientHunter {
 
@@ -24,4 +26,6 @@ public class ClientHunter {
     {
         return ClientHunter.buffed;
     }
+
+
 }

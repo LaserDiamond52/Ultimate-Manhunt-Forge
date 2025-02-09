@@ -1,4 +1,4 @@
-package net.laserdiamond.reversemanhunt.capability.client.hunter;
+package net.laserdiamond.reversemanhunt.client.hunter;
 
 import java.util.UUID;
 

@@ -14,7 +14,7 @@ public class RMItems {
 
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, ReverseManhunt.MODID);
 
-    public static final RegistryObject<Item> KNOCKBACK_STICK = registerItem("Wind Torch", "wind_torch", () -> new WindTorchItem(new Item.Properties().fireResistant()));
+    public static final RegistryObject<Item> WIND_TORCH = registerItem("Wind Torch", "wind_torch", () -> new WindTorchItem(new Item.Properties().fireResistant()));
 
     private static RegistryObject<Item> registerItem(String name, String localName, Supplier<Item> itemSupplier)
     {

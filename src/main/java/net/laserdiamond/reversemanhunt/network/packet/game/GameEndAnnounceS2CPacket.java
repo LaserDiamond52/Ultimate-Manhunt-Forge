@@ -1,5 +1,6 @@
 package net.laserdiamond.reversemanhunt.network.packet.game;
 
+import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.laserdiamond.reversemanhunt.event.ReverseManhuntGameStateEvent;
 import net.laserdiamond.reversemanhunt.network.packet.AnnounceS2CPacket;
 import net.minecraft.ChatFormatting;
