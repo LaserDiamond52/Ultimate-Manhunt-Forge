@@ -6,7 +6,7 @@ import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.reversemanhunt.event.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;

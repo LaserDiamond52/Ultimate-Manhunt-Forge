@@ -9,14 +9,17 @@ import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.*;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.*;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.SimpleChannel;
 
 import java.util.function.Function;
@@ -70,6 +73,9 @@ public class RMPackets {
 
         // Speed Runner Grace Period server to client
         registerPacket(SpeedRunnerGracePeriodDurationS2CPacket.class, SpeedRunnerGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Speed Runner Capability tracking
+        registerPacket(SpeedRunnerCapabilitySyncS2CPacket.class, SpeedRunnerCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     private static void registerHunterPackets()
@@ -88,6 +94,9 @@ public class RMPackets {
 
         // Hunter Grace Period server to client
         registerPacket(HunterGracePeriodDurationS2CPacket.class, HunterGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Hunter Capability tracking
+        registerPacket(HunterCapabilitySyncS2CPacket.class, HunterCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     private static void registerGamePackets()
@@ -125,4 +134,25 @@ public class RMPackets {
         NetworkPackets.sendToAllClients(INSTANCE, message);
     }
 
+    /**
+     * Sends a {@link MSG} to all tracking the {@code trackedEntity}
+     * @param message The {@link MSG} to send
+     * @param trackedEntity The {@linkplain Entity entity} being tracked
+     * @param <MSG> The {@link MSG} type to send
+     */
+    public static <MSG> void sendToAllTrackingEntity(MSG message, Entity trackedEntity)
+    {
+        INSTANCE.send(message, PacketDistributor.TRACKING_ENTITY.with(trackedEntity));
+    }
+
+    /**
+     * Sends a {@link MSG} to all tracking the {@code trackedEntity} and the client
+     * @param message The {@link MSG} to send
+     * @param trackedEntity The {@linkplain Entity entity} being tracked
+     * @param <MSG> The {@link MSG} type to send
+     */
+    public static <MSG> void sendToAllTrackingEntityAndSelf(MSG message, Entity trackedEntity)
+    {
+        INSTANCE.send(message, PacketDistributor.TRACKING_ENTITY_AND_SELF.with(trackedEntity));
+    }
 }

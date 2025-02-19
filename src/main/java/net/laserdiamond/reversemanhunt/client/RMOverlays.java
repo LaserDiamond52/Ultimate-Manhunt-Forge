@@ -2,12 +2,9 @@ package net.laserdiamond.reversemanhunt.client;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.*;
 import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
 import net.laserdiamond.reversemanhunt.client.game.ClientGameState;
 import net.laserdiamond.reversemanhunt.client.game.ClientGameTime;
 import net.laserdiamond.reversemanhunt.client.game.ClientHardcore;
@@ -18,6 +15,7 @@ import net.laserdiamond.reversemanhunt.client.speedrunner.ClientDistanceFromHunt
 import net.laserdiamond.reversemanhunt.client.speedrunner.ClientSpeedRunnerHunterDetection;
 import net.laserdiamond.reversemanhunt.client.speedrunner.ClientSpeedRunnerLives;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,15 +24,17 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Matrix4fStack;
 
 import java.text.DecimalFormat;
-import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class RMOverlays implements LayeredDraw.Layer {
@@ -53,17 +53,21 @@ public class RMOverlays implements LayeredDraw.Layer {
 
     private RMOverlays()
     {
-        LayeredDraw layeredDraw = new LayeredDraw()
+        LayeredDraw hudOverlay = new LayeredDraw()
                 .add(this);
 
-        LayeredDraw mcLayers = MINECRAFT.gui.layers;
-        mcLayers.add(layeredDraw, () -> !MINECRAFT.options.hideGui)
+        LayeredDraw detectionOverlay = new LayeredDraw()
                 .add(new SpeedRunnerHunterDetectionOverlay());
+
+        LayeredDraw mcLayers = MINECRAFT.gui.layers;
+        mcLayers.add(hudOverlay, () -> !MINECRAFT.options.hideGui)
+                .add(detectionOverlay, () -> true);
     }
 
     @Override
     public void render(GuiGraphics pGuiGraphics, DeltaTracker pDeltaTracker)
     {
+        final float partialTicks = pDeltaTracker.getGameTimeDeltaPartialTick(true);
         LocalPlayer player = MINECRAFT.player;
         if (player == null)
         {
@@ -97,7 +101,7 @@ public class RMOverlays implements LayeredDraw.Layer {
             }
         } else // Player is a hunter
         {
-            this.renderHunterTracker(pGuiGraphics); // Render tracker
+            this.renderHunterTracker(pGuiGraphics, player); // Render tracker
         }
         if (gameTime < ClientHunterGracePeriod.getGracePeriodDuration())
         {
@@ -158,24 +162,132 @@ public class RMOverlays implements LayeredDraw.Layer {
         }
     }
 
-    private void renderHunterTracker(GuiGraphics guiGraphics)
+    private void renderHunterTracker(GuiGraphics guiGraphics, LocalPlayer player)
     {
         int drawX = guiGraphics.guiWidth() / 2;
         int drawY = guiGraphics.guiHeight() - 77;
 
         boolean areSpeedRunnersPresent = ClientSpeedRunnerDistance.areSpeedRunnersPresent();
-//        UUID playerUUID = ClientSpeedRunnerDistance.getPlayerUUID();
         float distance = ClientSpeedRunnerDistance.getDistance();
+        Player trackedPlayer = ClientSpeedRunnerDistance.getTrackedSpeedRunner();
+
+        Camera camera = MINECRAFT.gameRenderer.getMainCamera();
+
+//        Matrix4fStack matrix4fstack = RenderSystem.getModelViewStack();
+//        matrix4fstack.pushMatrix();
+//        matrix4fstack.mul(guiGraphics.pose().last().pose());
+//        matrix4fstack.translate((float) (guiGraphics.guiWidth() / 2), (float)(guiGraphics.guiHeight() / 2), 0.0F);
+//
+//        // Set rotations for default position of the tracker
+//        // If the tracker is roughly in this position, you are heading towards the speed runner (line is flat on the screen)
+//        matrix4fstack.rotateX((float) ((-(camera.getXRot()) * Mth.DEG_TO_RAD))); // Rotate tracker to locate player on y-axis
+//
+//        matrix4fstack.rotateY((float) (((135F) * Mth.DEG_TO_RAD)));
+//
+//        matrix4fstack.scale(-1.0F, -1.0F, -1.0F);
+//        RenderSystem.applyModelViewMatrix();
+//        renderTrackerLines(30, -16777216, -16711936, true, true);
+//
+//        matrix4fstack.rotateY((float) (Math.PI / 4));
+//        RenderSystem.applyModelViewMatrix();
+//        renderTrackerLines(50, -16777216, -65536, false, true);
+//
+//
+//        matrix4fstack.popMatrix();
+//        RenderSystem.applyModelViewMatrix();
 
         DecimalFormat format = new DecimalFormat("0.00");
-        if (areSpeedRunnersPresent)
+        if (areSpeedRunnersPresent && trackedPlayer != null)
         {
             guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + "Nearest Speed Runner is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
+
+            Vec3 speedRunnerPos = trackedPlayer.getEyePosition();
+            Vec3 hunterCameraPos = camera.getPosition();
+
+            double cameraDistanceToPlayer = hunterCameraPos.distanceTo(speedRunnerPos);
+            double xDif = hunterCameraPos.x - speedRunnerPos.x;
+            double yDif = hunterCameraPos.y - speedRunnerPos.y;
+            double zDif = hunterCameraPos.z - speedRunnerPos.z;
+
+            double yRot = Math.acos(yDif / cameraDistanceToPlayer) + (Math.PI * 3 / 2); // Angle to track vertical
+            double xRotTan = Math.atan2(zDif, -xDif) + (Math.PI); // Angle to track horizontal axis
+
+            if (speedRunnerPos.z < hunterCameraPos.z) // Use z axis to determine if the player is behind us
+            {
+                yRot *= -1; // Controls tracking vertical (flip arrow)
+            }
+
+            Matrix4fStack matrix4fstack = RenderSystem.getModelViewStack();
+            matrix4fstack.pushMatrix();
+            matrix4fstack.mul(guiGraphics.pose().last().pose());
+            matrix4fstack.translate((float) (guiGraphics.guiWidth() / 2), (float)(guiGraphics.guiHeight() / 2), 0.0F);
+
+            // Set rotations for default position of the tracker
+            // If the tracker is roughly in this position, you are heading towards the speed runner (line is flat on the screen)
+            matrix4fstack.rotateX((float) ((-(camera.getXRot()) * Mth.DEG_TO_RAD) + yRot)); // Rotate tracker to locate player on y-axis
+            matrix4fstack.rotateY((float) (((45F + camera.getYRot()) * Mth.DEG_TO_RAD) + xRotTan)); // Track on X and Z axis
+
+            matrix4fstack.scale(-1.0F, -1.0F, -1.0F);
+            RenderSystem.applyModelViewMatrix();
+            renderTrackerLines(30, -16777216, -16711936, true, true);
+
+            matrix4fstack.rotateY((float) (Math.PI / 4));
+            matrix4fstack.rotateZ((float) (Math.PI / 2));
+
+            RenderSystem.applyModelViewMatrix();
+            renderTrackerLines(50, -16777216, -65536, false, true);
+
+            matrix4fstack.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+
         } else
         {
             guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "There are no Speed Runners nearby"), drawX, drawY, ChatFormatting.RED.getColor());
         }
+    }
 
+    private void renderTrackerLines(int lineLength, int outerColor, int innerColor, boolean drawX, boolean drawZ)
+    {
+        RenderSystem.assertOnRenderThread();
+        GlStateManager._depthMask(false);
+        GlStateManager._disableCull();
+        RenderSystem.setShader(GameRenderer::getRendertypeLinesShader);
+        Tesselator tesselator = RenderSystem.renderThreadTesselator();
+        BufferBuilder bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+        RenderSystem.lineWidth(4.0F);
+
+        if (drawX)
+        {
+            bufferbuilder.addVertex((float) 0, (float) 0, (float) 0).setColor(outerColor).setNormal(1.0F, 0.0F, 0.0F);
+            bufferbuilder.addVertex((float) lineLength, (float) 0, (float) 0).setColor(outerColor).setNormal(1.0F, 0.0F, 0.0F);
+        }
+
+        if (drawZ)
+        {
+            bufferbuilder.addVertex(0.0F, 0.0F, 0.0F).setColor(outerColor).setNormal(0.0F, 0.0F, 1.0F);
+            bufferbuilder.addVertex(0.0F, 0.0F, (float) lineLength).setColor(outerColor).setNormal(0.0F, 0.0F, 1.0F);
+        }
+
+        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        RenderSystem.lineWidth(2.0F);
+        bufferbuilder = tesselator.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+
+        if (drawX)
+        {
+            bufferbuilder.addVertex((float) 0, (float) 0, (float) 0).setColor(innerColor).setNormal(1.0F, 0.0F, 0.0F);
+            bufferbuilder.addVertex((float) lineLength, (float) 0, (float) 0).setColor(innerColor).setNormal(1.0F, 0.0F, 0.0F);
+        }
+
+        if (drawZ)
+        {
+            bufferbuilder.addVertex(0.0F, 0.0F, 0.0F).setColor(innerColor).setNormal(0.0F, 0.0F, 1.0F);
+            bufferbuilder.addVertex(0.0F, 0.0F, (float) lineLength).setColor(innerColor).setNormal(0.0F, 0.0F, 1.0F);
+        }
+
+        BufferUploader.drawWithShader(bufferbuilder.buildOrThrow());
+        RenderSystem.lineWidth(1.0F);
+        GlStateManager._enableCull();
+        GlStateManager._depthMask(true);
     }
 
     /**

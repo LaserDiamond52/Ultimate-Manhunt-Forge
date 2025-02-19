@@ -2,6 +2,7 @@ package net.laserdiamond.reversemanhunt.event;
 
 import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
+import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
@@ -16,6 +17,7 @@ import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerCapabilitySyncS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
@@ -26,8 +28,6 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderPlayerEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -35,7 +35,6 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
@@ -329,6 +328,30 @@ public class ForgeEvents {
         if (!player.level().isClientSide)
         {
             RMSoundEvents.stopFlatlineSound(player); // Stop heart flatline on respawn
+        }
+    }
+
+    @SubscribeEvent
+    public static void onStartTracking(PlayerEvent.StartTracking event)
+    {
+        final Entity targetEntity = event.getTarget();
+        final Player player = event.getEntity();
+
+        if (targetEntity instanceof Player playerTarget)
+        {
+            playerTarget.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+            {
+                // Send player the data about the entity they are tracking
+                RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(playerTarget.getId(), playerSpeedRunner.toNBT()), player);
+            });
+            playerTarget.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+            {
+                // Send player the data about the entity they are tracking
+                RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(playerTarget.getId(), playerHunter.toNBT()), player);
+            });
+
+            // TODO: When capability data changes, you need to send the new data to ALL tracking players and the player themselves.
+            // May need to find were S2C packets are sent for the client values
         }
     }
 

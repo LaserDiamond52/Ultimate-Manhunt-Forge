@@ -1,11 +1,13 @@
 package net.laserdiamond.reversemanhunt.client.hunter;
 
+import net.minecraft.world.entity.player.Player;
+
 import java.util.UUID;
 
 public class ClientSpeedRunnerDistance {
 
     private static boolean speedRunnersPresent;
-    private static UUID playerUUID;
+    private static Player player;
     private static float distance;
 
     public static void setSpeedRunnersPresent(boolean speedRunnersPresent)
@@ -18,14 +20,14 @@ public class ClientSpeedRunnerDistance {
         return ClientSpeedRunnerDistance.speedRunnersPresent;
     }
 
-    public static void setPlayerUUID(UUID playerUUID)
+    public static void setTrackedPlayer(Player player)
     {
-        ClientSpeedRunnerDistance.playerUUID = playerUUID;
+        ClientSpeedRunnerDistance.player = player;
     }
 
-    public static UUID getPlayerUUID()
+    public static Player getTrackedSpeedRunner()
     {
-        return ClientSpeedRunnerDistance.playerUUID;
+        return ClientSpeedRunnerDistance.player;
     }
 
     public static void setDistance(float distance)

@@ -1,4 +1,4 @@
-package net.laserdiamond.reversemanhunt.event;
+package net.laserdiamond.reversemanhunt.api;
 
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.network.RMPackets;

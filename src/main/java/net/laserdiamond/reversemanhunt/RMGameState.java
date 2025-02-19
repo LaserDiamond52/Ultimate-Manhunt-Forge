@@ -4,21 +4,14 @@ import net.laserdiamond.laserutils.util.raycast.AbstractRayCast;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
-import net.laserdiamond.reversemanhunt.client.hunter.ClientHunter;
-import net.laserdiamond.reversemanhunt.client.speedrunner.ClientSpeedRunnerLives;
-import net.laserdiamond.reversemanhunt.event.HuntersReleasedEvent;
-import net.laserdiamond.reversemanhunt.event.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.api.HuntersReleasedEvent;
+import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.ClosestSpeedRunnerS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeC2SPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeC2SPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.laserdiamond.reversemanhunt.util.RMMath;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
@@ -306,7 +299,7 @@ public class RMGameState {
                     {
                         player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
                     }
-                    HashMap<UUID, Float> playerDistances = new HashMap<>();
+                    HashMap<Integer, Float> playerDistances = new HashMap<>();
                     for (Player nearbyPlayer : level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_TRACKING_RANGE), RMGameState::isSpeedRunner))
                     {
                         Level nearLevel = nearbyPlayer.level();
@@ -315,7 +308,7 @@ public class RMGameState {
                             continue;
                         }
                         float distance = player.distanceTo(nearbyPlayer);
-                        playerDistances.put(nearbyPlayer.getUUID(), distance);
+                        playerDistances.put(nearbyPlayer.getId(), distance);
                         RMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), nearbyPlayer); // Tell nearby player how far they are from the hunter
 
                         if (currentGameTime > hunterGracePeriodTicks) // Is hunter out of grace period?
@@ -345,12 +338,12 @@ public class RMGameState {
 
                     if (playerDistances.isEmpty())
                     {
-                        RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(false, player.getUUID(), 0F), player);
+                        RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(false, player.getId(), 0F), player);
                         return;
                     }
 
                     float smallestDistance = RMMath.getLeast(playerDistances.values().stream().toList());
-                    for (Map.Entry<UUID, Float> entry : playerDistances.entrySet())
+                    for (Map.Entry<Integer, Float> entry : playerDistances.entrySet())
                     {
                         if (entry.getValue() == smallestDistance)
                         {

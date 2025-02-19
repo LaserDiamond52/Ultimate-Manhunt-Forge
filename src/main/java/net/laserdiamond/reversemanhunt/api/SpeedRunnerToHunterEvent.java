@@ -1,4 +1,4 @@
-package net.laserdiamond.reversemanhunt.event;
+package net.laserdiamond.reversemanhunt.api;
 
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.player.PlayerEvent;
