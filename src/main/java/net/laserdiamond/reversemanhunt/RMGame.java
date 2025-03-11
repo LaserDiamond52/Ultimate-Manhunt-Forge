@@ -1,22 +1,26 @@
 package net.laserdiamond.reversemanhunt;
 
-import net.laserdiamond.laserutils.util.raycast.AbstractRayCast;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
-import net.laserdiamond.reversemanhunt.api.HuntersReleasedEvent;
-import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.capability.game.PlayerGameTimeCapability;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
+import net.laserdiamond.reversemanhunt.api.event.HuntersReleasedEvent;
+import net.laserdiamond.reversemanhunt.api.event.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeCapabilitySyncS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.hunter.ClosestSpeedRunnerS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.TrackingSpeedRunnerS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
 import net.laserdiamond.reversemanhunt.util.RMMath;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -28,12 +32,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
-public class RMGameState {
-
-    /**
-     * Hunter's tracking distance to find speed runners
-     */
-    private static final int HUNTER_TRACKING_RANGE = 5000;
+public class RMGame {
 
     /**
      * Detection range for hunters for speed runners
@@ -55,10 +54,8 @@ public class RMGameState {
      */
     private static int speedRunnerGracePeriodTicks = 600; // 30 seconds
 
-    /**
-     * Amount of lives speed runners have
-     */
-    public static final int SPEED_RUNNER_LIVES = 3; // Speed runners have 3 lives
+    private static int xSpawnCoordinate = 0;
+    private static int zSpawnCoordinate = 0;
 
     /**
      * Friendly fire
@@ -158,7 +155,14 @@ public class RMGameState {
             {
                 return; // Player is a hunter. Do not continue here
             }
-            ret.set(player.tickCount < speedRunnerGracePeriodTicks);
+            player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+            {
+                if (!playerSpeedRunner.getWasLastKilledByHunter())
+                {
+                    return; // Player wasn't last killed by a hunter
+                }
+                ret.set(currentGameTime < playerSpeedRunner.getGracePeriodTimeStamp()); // Player is on speed runner grace period if the current game time is less than the time stamp of their grace period
+            });
         });
         return ret.get();
     }
@@ -174,7 +178,7 @@ public class RMGameState {
         {
             return;
         }
-        RMGameState.hunterGracePeriodTicks = durationTicks;
+        RMGame.hunterGracePeriodTicks = durationTicks;
     }
 
     /**
@@ -183,7 +187,7 @@ public class RMGameState {
      */
     public static int getHunterGracePeriod()
     {
-        return RMGameState.hunterGracePeriodTicks;
+        return RMGame.hunterGracePeriodTicks;
     }
 
     /**
@@ -197,7 +201,7 @@ public class RMGameState {
         {
             return;
         }
-        RMGameState.speedRunnerGracePeriodTicks = durationTicks;
+        RMGame.speedRunnerGracePeriodTicks = durationTicks;
     }
 
     /**
@@ -206,7 +210,7 @@ public class RMGameState {
      */
     public static int getSpeedRunnerGracePeriod()
     {
-        return RMGameState.speedRunnerGracePeriodTicks;
+        return RMGame.speedRunnerGracePeriodTicks;
     }
 
     /**
@@ -215,7 +219,7 @@ public class RMGameState {
      */
     public static void setFriendlyFire(boolean friendlyFire)
     {
-        RMGameState.friendlyFire = friendlyFire;
+        RMGame.friendlyFire = friendlyFire;
     }
 
     /**
@@ -224,7 +228,7 @@ public class RMGameState {
      */
     public static boolean isFriendlyFire()
     {
-        return RMGameState.friendlyFire;
+        return RMGame.friendlyFire;
     }
 
     /**
@@ -234,7 +238,7 @@ public class RMGameState {
      */
     public static void setHardcore(boolean hardcore)
     {
-        RMGameState.hardcore = hardcore;
+        RMGame.hardcore = hardcore;
     }
 
     /**
@@ -243,16 +247,45 @@ public class RMGameState {
      */
     public static boolean isHardcore()
     {
-        return RMGameState.hardcore;
+        return RMGame.hardcore;
+    }
+
+    /**
+     * Sets the X and Z spawn coordinate for speed runners and hunters when the game starts
+     * @param x The x coordinate to spawn at
+     * @param z The z coordinate to spawn at
+     */
+    public static void setXAndZSpawnCoordinate(int x, int z)
+    {
+        xSpawnCoordinate = x;
+        zSpawnCoordinate = z;
+    }
+
+    public static int getXSpawnCoordinate()
+    {
+        return xSpawnCoordinate;
+    }
+
+    public static int getZSpawnCoordinate()
+    {
+        return zSpawnCoordinate;
     }
 
     @SubscribeEvent
-    public static void onTick(TickEvent.ServerTickEvent.Post event)
+    public static void onServerTickPre(TickEvent.ServerTickEvent.Pre event)
     {
         if (State.isGameRunning())
         {
             currentGameTime++; // Increment the current game time for as long as the game is running
             RMPackets.sendToAllClients(new GameTimeS2CPacket(currentGameTime)); // Send current time to all client
+            for (Player player : event.getServer().getPlayerList().getPlayers())
+            {
+                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
+                {
+                    playerGameTime.setGameTime(currentGameTime);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
+                });
+            }
         }
     }
 
@@ -281,14 +314,13 @@ public class RMGameState {
         {
             if (playerHunter.isHunter()) // Is the player a hunter?
             {
-
                 if (State.isGameRunning()) // Is a game in progress?
                 {
                     player.getFoodData().eat(200, 1.0F);
 
                     if (playerHunter.isBuffed())
                     {
-                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes());
+//                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes());
                         if (player.tickCount % 200 == 0)
                         {
                             player.setHealth(player.getHealth() + 2);
@@ -298,86 +330,143 @@ public class RMGameState {
                     if (currentGameTime < hunterGracePeriodTicks)
                     {
                         player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
+                        // FIXME: Flying must be enabled on the server
+                        player.teleportTo(0, 1000, 0); // Hunters should be teleported to an unreachable place
+                        return; // End method here. Don't start tracking until hunters have been released
                     }
-                    HashMap<Integer, Float> playerDistances = new HashMap<>();
-                    for (Player nearbyPlayer : level.getEntitiesOfClass(Player.class, AbstractRayCast.createBBLivingEntity(player, HUNTER_TRACKING_RANGE), RMGameState::isSpeedRunner))
+                    // Track chosen player
+                    for (Player speedRunnerPlayer : PlayerHunter.getAvailableSpeedRunners(player)) // Let speed runners know how close they are to a hunter
                     {
-                        Level nearLevel = nearbyPlayer.level();
-                        if (!level.dimension().equals(nearLevel.dimension()))
+                        if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(speedRunnerPlayer))
                         {
-                            continue;
+                            continue; // Speed runner is on grace period. Do not continue
                         }
-                        float distance = player.distanceTo(nearbyPlayer);
-                        playerDistances.put(nearbyPlayer.getId(), distance);
-                        RMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), nearbyPlayer); // Tell nearby player how far they are from the hunter
+                        float distance = player.distanceTo(speedRunnerPlayer);
+                        RMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
 
                         if (currentGameTime > hunterGracePeriodTicks) // Is hunter out of grace period?
                         {
                             if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
                             {
-                                PlayerSpeedRunner.ServerHunterMarker.INSTANCE.setIsNearHunter(nearbyPlayer, true); // Mark player
-                                if (nearbyPlayer instanceof ServerPlayer nearServerPlayer)
+                                if (speedRunnerPlayer instanceof ServerPlayer nearServerPlayer)
                                 {
-                                    if (nearbyPlayer.isAlive()) // Is the player alive?
+                                    if (speedRunnerPlayer.isAlive()) // Is the player alive?
                                     {
                                         int rate = (int) ((distance / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
-                                        if (nearbyPlayer.tickCount % rate == 0) // ~180 bpm
+                                        if (speedRunnerPlayer.tickCount % rate == 0) // ~180 bpm
                                         {
                                             nearServerPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
                                         }
-                                        RMSoundEvents.playDetectionSound(nearbyPlayer); // Play detection sound
+                                        RMSoundEvents.playDetectionSound(speedRunnerPlayer); // Play detection sound
                                     }
                                 }
+
                             } else // Not close enough to notify hunter
                             {
-                                PlayerSpeedRunner.ServerHunterMarker.INSTANCE.setIsNearHunter(nearbyPlayer, false); // Unmark player
-                                RMSoundEvents.stopDetectionSound(nearbyPlayer);
+                                RMSoundEvents.stopDetectionSound(speedRunnerPlayer);
                             }
                         }
                     }
-
-                    if (playerDistances.isEmpty())
+                    UUID trackedPlayerUUID = playerHunter.getTrackingPlayerUUID(); // UUID of player to track
+                    if (trackedPlayerUUID == player.getUUID())
                     {
-                        RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(false, player.getId(), 0F), player);
+                        RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
                         return;
                     }
-
-                    float smallestDistance = RMMath.getLeast(playerDistances.values().stream().toList());
-                    for (Map.Entry<Integer, Float> entry : playerDistances.entrySet())
+                    MinecraftServer mcServer = player.getServer();
+                    if (mcServer == null) // Is server null?
                     {
-                        if (entry.getValue() == smallestDistance)
+                        RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
+                        return;
+                    }
+                    Player trackedPlayer = mcServer.getPlayerList().getPlayer(trackedPlayerUUID); // Player to track
+                    if (trackedPlayer == null) // Is there a player being tracked?
+                    {
+                        RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
+                        return;
+                    }
+                    if (!trackedPlayer.level().isClientSide) // On server for tracked player?
+                    {
+                        if (!trackedPlayer.level().dimension().equals(player.level().dimension())) // Are players in different dimensions?
                         {
-                            RMPackets.sendToPlayer(new ClosestSpeedRunnerS2CPacket(true, entry.getKey(), entry.getValue()), player);
+                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player);
+                            return;
+                        }
+                        if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(trackedPlayer)) // Is the speed runner on grace period?
+                        {
+                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
                             return;
                         }
                     }
+                    float distance = player.distanceTo(trackedPlayer);
+                    RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(true, trackedPlayer, distance), player); // Hunter is now tracking this player
+
+                    // Track Nearest Player
+//                    HashMap<Integer, Float> playerDistances = new HashMap<>();
+//                    HashMap<Integer, Vec3> playerPositions = new HashMap<>();
+//                    for (Player speedRunnerPlayer : PlayerSpeedRunner.getRemainingSpeedRunners()) // Loop through all remaining speed runners
+//                    {
+//                        Level nearLevel = speedRunnerPlayer.level();
+//                        if (!level.dimension().equals(nearLevel.dimension()))
+//                        {
+//                            continue; // Dimensions do not match. Skip this iteration
+//                        }
+//                        if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(speedRunnerPlayer))
+//                        {
+//                            continue; // Do not track players that are on grace period
+//                        }
+//                        float distance = player.distanceTo(speedRunnerPlayer);
+//                        playerDistances.put(speedRunnerPlayer.getId(), distance); // Save distance
+//                        playerPositions.put(speedRunnerPlayer.getId(), speedRunnerPlayer.getEyePosition()); // Save position
+//                        RMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), speedRunnerPlayer); // Tell nearby player how far they are from a hunter
+//
+//                        if (currentGameTime > hunterGracePeriodTicks) // Is hunter out of grace period?
+//                        {
+//                            if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
+//                            {
+//                                if (speedRunnerPlayer instanceof ServerPlayer nearServerPlayer)
+//                                {
+//                                    if (speedRunnerPlayer.isAlive()) // Is the player alive?
+//                                    {
+//                                        int rate = (int) ((distance / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
+//                                        if (speedRunnerPlayer.tickCount % rate == 0) // ~180 bpm
+//                                        {
+//                                            nearServerPlayer.connection.send(new ClientboundSoundPacket(RMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+//                                        }
+//                                        RMSoundEvents.playDetectionSound(speedRunnerPlayer); // Play detection sound
+//                                    }
+//                                }
+//
+//                            } else // Not close enough to notify hunter
+//                            {
+//                                RMSoundEvents.stopDetectionSound(speedRunnerPlayer);
+//                            }
+//                        }
+//                    }
+//
+//                    if (playerDistances.isEmpty() || playerPositions.isEmpty())
+//                    {
+//                        RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player.getId(), 0F, player.getEyePosition()), player);
+//                        return;
+//                    }
+//
+//                    float smallestDistance = RMMath.getLeast(playerDistances.values().stream().toList());
+//                    for (Map.Entry<Integer, Float> entry : playerDistances.entrySet())
+//                    {
+//                        if (entry.getValue() == smallestDistance)
+//                        {
+//                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(true, entry.getKey(), entry.getValue(), playerPositions.get(entry.getKey())), player);
+//                            return;
+//                        }
+//                    }
                 }
             }
         });
     }
 
-    private static boolean isSpeedRunner(Player player)
+    public static boolean isNearHunter(Player playerSpeedRunner, Player playerHunter)
     {
-        for (Player target : PlayerSpeedRunner.getRemainingSpeedRunners())
-        {
-            if (target.getUUID() == player.getUUID())
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isHunter(Player player)
-    {
-        for (Player target : PlayerHunter.getHunters())
-        {
-            if (target.getUUID() == player.getUUID())
-            {
-                return true;
-            }
-        }
-        return false;
+        return playerSpeedRunner.distanceTo(playerHunter) < HUNTER_DETECTION_RANGE;
     }
 
     /**

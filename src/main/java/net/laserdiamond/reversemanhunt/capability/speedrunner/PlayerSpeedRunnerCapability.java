@@ -1,16 +1,13 @@
-package net.laserdiamond.reversemanhunt.capability;
+package net.laserdiamond.reversemanhunt.capability.speedrunner;
 
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
+import net.laserdiamond.reversemanhunt.capability.AbstractCapability;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -20,16 +17,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
-public class PlayerSpeedRunnerCapability implements ICapabilityProvider, INBTSerializable<CompoundTag> {
+public class PlayerSpeedRunnerCapability extends AbstractCapability<PlayerSpeedRunner> {
 
-    public static Capability<PlayerSpeedRunner> PLAYER_SPEED_RUNNER_LIVES = CapabilityManager.get(new CapabilityToken<>() {});
+    public static Capability<PlayerSpeedRunner> PLAYER_SPEED_RUNNER = CapabilityManager.get(new CapabilityToken<>() {});
 
     @SubscribeEvent
     public static void attachCapability(AttachCapabilitiesEvent<Entity> event)
     {
         if (event.getObject() instanceof Player player)
         {
-            if (!player.getCapability(PLAYER_SPEED_RUNNER_LIVES).isPresent())
+            if (!player.getCapability(PLAYER_SPEED_RUNNER).isPresent())
             {
                 event.addCapability(ReverseManhunt.fromRMPath("speed_runner_lives_cap"), new PlayerSpeedRunnerCapability());
             }
@@ -43,8 +40,8 @@ public class PlayerSpeedRunnerCapability implements ICapabilityProvider, INBTSer
         {
             event.getOriginal().reviveCaps(); // Revive capability
 
-            event.getOriginal().getCapability(PLAYER_SPEED_RUNNER_LIVES).ifPresent(oldLives ->
-                    event.getEntity().getCapability(PLAYER_SPEED_RUNNER_LIVES).ifPresent(newLives ->
+            event.getOriginal().getCapability(PLAYER_SPEED_RUNNER).ifPresent(oldLives ->
+                    event.getEntity().getCapability(PLAYER_SPEED_RUNNER).ifPresent(newLives ->
                             newLives.copyFrom(oldLives)));
 
             event.getOriginal().invalidateCaps(); // Invalidate capability
@@ -53,9 +50,8 @@ public class PlayerSpeedRunnerCapability implements ICapabilityProvider, INBTSer
 
     private PlayerSpeedRunner playerSpeedRunner = null;
 
-    private final LazyOptional<PlayerSpeedRunner> optional = LazyOptional.of(this::createPlayerSpeedRunnerLives);
-
-    private PlayerSpeedRunner createPlayerSpeedRunnerLives()
+    @Override
+    protected PlayerSpeedRunner createCapability()
     {
         if (this.playerSpeedRunner == null)
         {
@@ -66,24 +62,10 @@ public class PlayerSpeedRunnerCapability implements ICapabilityProvider, INBTSer
 
     @Override
     public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if (cap == PLAYER_SPEED_RUNNER_LIVES)
+        if (cap == PLAYER_SPEED_RUNNER)
         {
-            return this.optional.cast();
+            return this.capabilityOptional.cast();
         }
         return LazyOptional.empty();
-    }
-
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider registryAccess)
-    {
-        CompoundTag nbt = new CompoundTag();
-        this.createPlayerSpeedRunnerLives().saveNBTData(nbt);
-        return nbt;
-    }
-
-    @Override
-    public void deserializeNBT(HolderLookup.Provider registryAccess, CompoundTag nbt)
-    {
-        this.createPlayerSpeedRunnerLives().loadNBTData(nbt);
     }
 }

@@ -3,10 +3,15 @@ package net.laserdiamond.reversemanhunt.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.reversemanhunt.RMGameState;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
+import net.laserdiamond.reversemanhunt.RMGame;
+import net.laserdiamond.reversemanhunt.api.event.SpeedRunnerToHunterEvent;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterCapabilitySyncS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,6 +20,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameRules;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -138,7 +144,7 @@ public class ManageHuntersCommand {
     {
         AtomicInteger i = new AtomicInteger();
 
-        if (RMGameState.State.isGameRunning())
+        if (RMGame.State.isGameRunning())
         {
             logFailChange(commandContext.getSource(), null, Reason.GAME_RUNNING); // Log fail. Okay to pass null, since the ServerPlayer isn't used because of the Reason
             return 0; // End command. Do not modify hunters if game is running
@@ -157,9 +163,11 @@ public class ManageHuntersCommand {
                             logFailChange(commandContext.getSource(), serverPlayer, Reason.ALREADY_HUNTER);
                             return; // Exit if player is already a hunter
                         }
-                        playerHunter.setHunter(true); // Now a hunter
-                        playerHunter.setBuffed(isBuffed); // Set if buffed
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), serverPlayer);
+//                        playerHunter.setHunter(true); // Now a hunter
+//                        playerHunter.setBuffed(isBuffed); // Set if buffed
+//                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), serverPlayer);
+//                        RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(serverPlayer.getId(), playerHunter.toNBT()), serverPlayer);
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(serverPlayer, isBuffed, false));
                         logHunterChange(commandContext.getSource(), serverPlayer, modifier, isBuffed);
                         i.getAndIncrement();
                     });
@@ -180,6 +188,7 @@ public class ManageHuntersCommand {
                         playerHunter.setHunter(false); // No longer a hunter
                         playerHunter.setBuffed(false); // No longer buffed
                         RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), serverPlayer);
+                        RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(serverPlayer.getId(), playerHunter.toNBT()), serverPlayer);
                         logHunterChange(commandContext.getSource(), serverPlayer, modifier, isBuffed);
                         i.getAndIncrement();
                     });
@@ -187,6 +196,7 @@ public class ManageHuntersCommand {
                 return i.get();
             }
         }
+        RMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(PlayerSpeedRunner.getRemainingSpeedRunners().size(), PlayerHunter.getHunters().size()));
         return 0;
     }
 }

@@ -1,17 +1,20 @@
-package net.laserdiamond.reversemanhunt.api;
+package net.laserdiamond.reversemanhunt.api.event;
 
-import net.laserdiamond.reversemanhunt.RMGameState;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.RMGame;
+import net.laserdiamond.reversemanhunt.capability.game.PlayerGameTimeCapability;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
 import net.laserdiamond.reversemanhunt.item.RMItems;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
-import net.laserdiamond.reversemanhunt.network.packet.game.GameEndAnnounceS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.game.*;
+import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterCapabilitySyncS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterChangeS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerLifeChangeS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerCapabilitySyncS2CPacket;
+import net.laserdiamond.reversemanhunt.network.packet.speedrunner.SpeedRunnerChangeS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
@@ -19,7 +22,7 @@ import net.minecraftforge.eventbus.api.Event;
 import java.util.List;
 
 /**
- * Events that are called when the {@linkplain RMGameState.State Reverse Manhunt Game State} changes
+ * Events that are called when the {@linkplain RMGame.State Reverse Manhunt Game State} changes
  * <p>Events are fired on the {@linkplain net.minecraftforge.common.MinecraftForge#EVENT_BUS main Forge event bus}</p>
  */
 public abstract class ReverseManhuntGameStateEvent extends Event {
@@ -31,14 +34,14 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
     {
         this.hunters = hunters;
         this.speedRunners = speedRunners;
-        RMGameState.setCurrentGameState(this.gameState()); // Set to the game state specified
+        RMGame.setCurrentGameState(this.gameState()); // Set to the game state specified
         RMPackets.sendToAllClients(new GameStateS2CPacket(this.gameState())); // Send to all clients
     }
 
     /**
-     * @return The {@linkplain net.laserdiamond.reversemanhunt.RMGameState.State game state} the Reverse Manhunt game will enter when the event is called
+     * @return The {@linkplain RMGame.State game state} the Reverse Manhunt game will enter when the event is called
      */
-    public abstract RMGameState.State gameState();
+    public abstract RMGame.State gameState();
 
     /**
      * @return A {@link List} of all the {@linkplain Player players} that are hunters
@@ -59,22 +62,21 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
      */
     public final long getGameTime()
     {
-        return RMGameState.getCurrentGameTime();
+        return RMGame.getCurrentGameTime();
     }
 
     /**
      * Event called when the Revers Manhunt game starts
      */
-    public static class Start extends ReverseManhuntGameStateEvent
+    public static class Start extends ReverseManhuntGameStateEvent implements PlayerGameSpawner
     {
-
-        public Start(List<Player> hunters, List<Player> speedRunners) throws UnsupportedOperationException
+        public Start(List<Player> hunters, List<Player> speedRunners)
         {
             super(hunters, speedRunners);
-            RMGameState.resetGameTime(); // Reset the game time
+            RMGame.resetGameTime(); // Reset the game time
             for (Player player : this.speedRunners)
             {
-                RMGameState.logPlayerUUID(player); // Log the player for this iteration of the game
+                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
                 player.tickCount = 0; // Reset tick counts
                 player.setHealth(player.getMaxHealth()); // Reset back to max health
                 player.getInventory().clearContent(); // Clear items
@@ -83,11 +85,13 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
 
                 if (!player.level().isClientSide) // Are we on the server?
                 {
-                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
                     {
-                        playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
+                        playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
                         playerSpeedRunner.setWasLastKilledByHunter(false);
-                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                        playerSpeedRunner.setGracePeriodTimeStamp(0);
+                        RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                        RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
                     });
                     player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                     {
@@ -95,24 +99,30 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                         playerHunter.setHunter(false);
                         playerHunter.setBuffed(false);
                         RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
+                        RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
                     });
+
+                    this.spawn(player); // Move speed runners to spawn position
                 }
 
             }
             for (Player player : this.hunters)
             {
-                RMGameState.logPlayerUUID(player); // Log the player for this iteration of the game
+                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
                 player.tickCount = 0; // Reset tick counts
                 player.setHealth(player.getMaxHealth()); // Reset back to max health
                 player.getFoodData().eat(200, 1.0F); // Reset food level
+                player.getInventory().clearContent(); // Clear items
 
                 if (!player.level().isClientSide)
                 {
-                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
                     {
-                        playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES); // Reset lives
+                        playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
                         playerSpeedRunner.setWasLastKilledByHunter(false);
-                        RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                        playerSpeedRunner.setGracePeriodTimeStamp(0);
+                        RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                        RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
                     });
                     player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                     {
@@ -122,16 +132,25 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                             if (playerHunter.isBuffed()) // Add buff attributes
                             {
                                 player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
+                                player.setHealth(player.getMaxHealth());
                             }
                         }
                     });
+
+                    MinecraftServer mcServer = player.getServer();
+                    if (mcServer != null)
+                    {
+                        this.moveToOverworld(player, player.getServer()); // Move player to overworld
+                    }
                 }
             }
+
+            RMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(this.speedRunners.size(), this.hunters.size()));
         }
 
         @Override
-        public RMGameState.State gameState() {
-            return RMGameState.State.STARTED;
+        public RMGame.State gameState() {
+            return RMGame.State.STARTED;
         }
     }
 
@@ -147,8 +166,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             super(hunters, speedRunners);
             this.reason = reason;
             RMPackets.sendToAllClients(new GameEndAnnounceS2CPacket(this.reason));
-            RMPackets.sendToAllClients(new HunterDetectionS2CPacket(false));
-            RMGameState.wipeLoggedPlayerUUIDs(); // Wipe the logged players
+            RMPackets.sendToAllClients(new GameTimeS2CPacket(0)); // Reset Game Time
+            RMGame.wipeLoggedPlayerUUIDs(); // Wipe the logged players
             for (Player player : this.hunters)
             {
                 RMSoundEvents.stopDetectionSound(player);
@@ -163,22 +182,37 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     playerHunter.setHunter(false);
                     playerHunter.setBuffed(false);
                     RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
                 });
-                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
                 {
-                    playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES);
+                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
                     playerSpeedRunner.setWasLastKilledByHunter(false);
-                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                });
+                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
+                {
+                    playerGameTime.setGameTime(0);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
                 });
             }
             for (Player player : this.speedRunners)
             {
                 RMSoundEvents.stopDetectionSound(player);
-                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER_LIVES).ifPresent(playerSpeedRunner ->
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
                 {
-                    playerSpeedRunner.setLives(RMGameState.SPEED_RUNNER_LIVES);
+                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
                     playerSpeedRunner.setWasLastKilledByHunter(false);
-                    RMPackets.sendToPlayer(new SpeedRunnerLifeChangeS2CPacket(playerSpeedRunner), player);
+                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                });
+                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
+                {
+                    playerGameTime.setGameTime(0);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
                 });
             }
         }
@@ -188,8 +222,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         }
 
         @Override
-        public RMGameState.State gameState() {
-            return RMGameState.State.NOT_STARTED;
+        public RMGame.State gameState() {
+            return RMGame.State.NOT_STARTED;
         }
 
         public enum Reason
@@ -224,7 +258,7 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
     }
 
     /**
-     * Event called when the {@linkplain RMGameState Reverse Manhunt game state} has been set to {@linkplain net.laserdiamond.reversemanhunt.RMGameState.State#PAUSED paused}
+     * Event called when the {@linkplain RMGame Reverse Manhunt game state} has been set to {@linkplain RMGame.State#PAUSED paused}
      */
     public static class Pause extends ReverseManhuntGameStateEvent
     {
@@ -249,13 +283,13 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         }
 
         @Override
-        public RMGameState.State gameState() {
-            return RMGameState.State.PAUSED;
+        public RMGame.State gameState() {
+            return RMGame.State.PAUSED;
         }
     }
 
     /**
-     * Event called when the {@linkplain RMGameState Reverse Manhunt game state} has been set to {@linkplain net.laserdiamond.reversemanhunt.RMGameState.State#IN_PROGRESS in progress}
+     * Event called when the {@linkplain RMGame Reverse Manhunt game state} has been set to {@linkplain RMGame.State#IN_PROGRESS in progress}
      */
     public static class Resume extends ReverseManhuntGameStateEvent
     {
@@ -265,15 +299,15 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             super(hunters, speedRunners);
             for (Player player : hunters)
             {
-                if (!RMGameState.containsLoggedPlayerUUID(player)) // Check if we have this player logged
+                if (!RMGame.containsLoggedPlayerUUID(player)) // Check if we have this player logged
                 {
-                    RMGameState.logPlayerUUID(player); // Log them
+                    RMGame.logPlayerUUID(player); // Log them
                 }
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
                     if (playerHunter.isHunter()) // Ensure that the player is a hunter
                     {
-                        if (RMGameState.areHuntersOnGracePeriod()) // Is the game still on grace period?
+                        if (RMGame.areHuntersOnGracePeriod()) // Is the game still on grace period?
                         {
                             player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
                         }
@@ -286,16 +320,16 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             }
             for (Player player : speedRunners)
             {
-                if (!RMGameState.containsLoggedPlayerUUID(player))
+                if (!RMGame.containsLoggedPlayerUUID(player))
                 {
-                    RMGameState.logPlayerUUID(player);
+                    RMGame.logPlayerUUID(player);
                 }
             }
         }
 
         @Override
-        public RMGameState.State gameState() {
-            return RMGameState.State.IN_PROGRESS;
+        public RMGame.State gameState() {
+            return RMGame.State.IN_PROGRESS;
         }
     }
 }

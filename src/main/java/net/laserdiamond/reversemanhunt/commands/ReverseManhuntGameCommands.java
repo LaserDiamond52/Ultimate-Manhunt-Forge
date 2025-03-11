@@ -2,11 +2,11 @@ package net.laserdiamond.reversemanhunt.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.reversemanhunt.RMGameState;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
+import net.laserdiamond.reversemanhunt.RMGame;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.api.event.ReverseManhuntGameStateEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -32,24 +32,24 @@ public class ReverseManhuntGameCommands {
                         .requires(commandSourceStack -> ForgeServerEvents.permission(commandSourceStack, PERMISSION_LEVEL))
                         .then(
                                 Commands.literal("start")
-                                        .executes(commandContext -> changeGameState(commandContext, RMGameState.State.STARTED))
+                                        .executes(commandContext -> changeGameState(commandContext, RMGame.State.STARTED))
                         )
                         .then(
                                 Commands.literal("pause")
-                                        .executes(commandContext -> changeGameState(commandContext, RMGameState.State.PAUSED))
+                                        .executes(commandContext -> changeGameState(commandContext, RMGame.State.PAUSED))
                         )
                         .then(
                                 Commands.literal("resume")
-                                        .executes(commandContext -> changeGameState(commandContext, RMGameState.State.IN_PROGRESS))
+                                        .executes(commandContext -> changeGameState(commandContext, RMGame.State.IN_PROGRESS))
                         )
                         .then(
                                 Commands.literal("stop")
-                                        .executes(commandContext -> changeGameState(commandContext, RMGameState.State.NOT_STARTED))
+                                        .executes(commandContext -> changeGameState(commandContext, RMGame.State.NOT_STARTED))
                         )
         );
     }
 
-    private static void logGameStateChange(CommandSourceStack source, RMGameState.State newGameState, boolean successful)
+    private static void logGameStateChange(CommandSourceStack source, RMGame.State newGameState, boolean successful)
     {
         if (successful)
         {
@@ -67,11 +67,11 @@ public class ReverseManhuntGameCommands {
             }
         } else
         {
-            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Reverse Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + RMGameState.getCurrentGameState().toString() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.toString()));
+            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Reverse Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + RMGame.getCurrentGameState().toString() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.toString()));
         }
     }
 
-    private static void logFailStart(CommandSourceStack source, RMGameState.State newGameState)
+    private static void logFailStart(CommandSourceStack source, RMGame.State newGameState)
     {
         switch (newGameState)
         {
@@ -80,12 +80,11 @@ public class ReverseManhuntGameCommands {
         }
     }
 
-    private static int changeGameState(CommandContext<CommandSourceStack> commandContext, RMGameState.State newGameState)
+    private static int changeGameState(CommandContext<CommandSourceStack> commandContext, RMGame.State newGameState)
     {
         int i = 0;
 
         List<Player> hunters = PlayerHunter.getHunters();
-//        List<Player> speedRunners = SpeedRunnerRegistry.INSTANCE.getRemainingSpeedRunners();
         List<Player> speedRunners = PlayerSpeedRunner.getRemainingSpeedRunners();
 //        switch (newGameState)
 //        {
@@ -99,9 +98,8 @@ public class ReverseManhuntGameCommands {
 //            }
 //        }
 
-        if (RMGameState.setCurrentGameState(newGameState)) // Check that the game state has changed
+        if (RMGame.setCurrentGameState(newGameState)) // Check that the game state has changed
         {
-
             switch (newGameState)
             {
                 case STARTED -> MinecraftForge.EVENT_BUS.post(new ReverseManhuntGameStateEvent.Start(

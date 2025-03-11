@@ -3,7 +3,7 @@ package net.laserdiamond.reversemanhunt.commands.gamerule;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.RMGame;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
@@ -12,8 +12,10 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-import java.util.Collection;
-
+/**
+ * Command used to determine if the Reverse Manhunt game should be hardcore
+ * <p>When a Reverse Manhunt game is set to hardcore, any death removes a life from players that are speed runners</p>
+ */
 public class SetHardcoreCommand {
 
     private static final int PERMISSION_LEVEL = 2;
@@ -45,13 +47,13 @@ public class SetHardcoreCommand {
     private static int setHardcore(CommandContext<CommandSourceStack> commandContext, boolean isHardcore)
     {
         int i = 0;
-        if (RMGameState.State.hasGameBeenStarted())
+        if (RMGame.State.hasGameBeenStarted())
         {
             // Game started. Do not change
             logFailHardcoreUpdate(commandContext.getSource(), isHardcore);
             return 0;
         }
-        RMGameState.setHardcore(isHardcore);
+        RMGame.setHardcore(isHardcore);
         RMPackets.sendToAllClients(new HardcoreUpdateS2CPacket(isHardcore));
         logHardcoreUpdate(commandContext.getSource(), isHardcore);
         return i;

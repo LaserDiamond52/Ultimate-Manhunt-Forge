@@ -3,6 +3,7 @@ package net.laserdiamond.reversemanhunt.client.models;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.laserdiamond.reversemanhunt.client.layers.SpeedRunnerGracePeriodLayer;
+import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
@@ -31,14 +32,13 @@ public final class GracePeriodArmorModel<T extends LivingEntity> extends Humanoi
         return LayerDefinition.create(humanoidMesh, 64, 64);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T extends LivingEntity> void render(SpeedRunnerGracePeriodLayer layer, GracePeriodArmorModel<T> model, ResourceLocation texture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch)
+    public static <T extends LivingEntity, M extends HumanoidModel<T>> void render(M parentModel, GracePeriodArmorModel<T> model, ResourceLocation texture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, int color)
     {
         poseStack.pushPose();
 
         if (entity instanceof AbstractClientPlayer abstractClientPlayer)
         {
-            layer.getParentModel().copyPropertiesTo((HumanoidModel<AbstractClientPlayer>) model);
+            parentModel.copyPropertiesTo(model);
 
             HumanoidModel.ArmPose itemPose1 = PlayerRenderer.getArmPose(abstractClientPlayer, InteractionHand.MAIN_HAND);
             HumanoidModel.ArmPose itemPose2 = PlayerRenderer.getArmPose(abstractClientPlayer, InteractionHand.OFF_HAND);
@@ -59,7 +59,8 @@ public final class GracePeriodArmorModel<T extends LivingEntity> extends Humanoi
         }
 
         model.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
-        VertexConsumer vertexConsumer = bufferSource.getBuffer(model.renderType(texture)).setColor(FastColor.ARGB32.color(32, 16777215));
+        VertexConsumer vertexConsumer = bufferSource.getBuffer(model.renderType(texture));
+//                .setColor(FastColor.ARGB32.color(32, color));
         model.renderToBuffer(poseStack, vertexConsumer, packedLight, OverlayTexture.NO_OVERLAY);
         poseStack.popPose();
     }

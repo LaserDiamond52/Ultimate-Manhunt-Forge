@@ -1,8 +1,7 @@
 package net.laserdiamond.reversemanhunt.network.packet.hunter;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunterCapability;
-import net.laserdiamond.reversemanhunt.network.RMPackets;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;

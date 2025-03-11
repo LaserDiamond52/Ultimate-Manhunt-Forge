@@ -1,5 +1,7 @@
-package net.laserdiamond.reversemanhunt.network.packet.hunter;
+package net.laserdiamond.reversemanhunt.network.packet.game;
 
+import net.laserdiamond.reversemanhunt.capability.game.PlayerGameTime;
+import net.laserdiamond.reversemanhunt.capability.game.PlayerGameTimeCapability;
 import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.network.packet.CapabilitySyncS2CPacket;
 import net.minecraft.client.Minecraft;
@@ -11,14 +13,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
-public class HunterCapabilitySyncS2CPacket extends CapabilitySyncS2CPacket {
+public class GameTimeCapabilitySyncS2CPacket extends CapabilitySyncS2CPacket {
 
-    public HunterCapabilitySyncS2CPacket(int entityId, CompoundTag nbtTag)
-    {
+    public GameTimeCapabilitySyncS2CPacket(int entityId, CompoundTag nbtTag) {
         super(entityId, nbtTag);
     }
 
-    public HunterCapabilitySyncS2CPacket(FriendlyByteBuf buf) {
+    public GameTimeCapabilitySyncS2CPacket(FriendlyByteBuf buf) {
         super(buf);
     }
 
@@ -34,9 +35,9 @@ public class HunterCapabilitySyncS2CPacket extends CapabilitySyncS2CPacket {
         Entity trackedEntity = level.getEntity(this.entityId);
         if (trackedEntity instanceof Player trackedPlayer)
         {
-            trackedPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+            trackedPlayer.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
             {
-                playerHunter.loadNBTData(this.nbtTag);
+                playerGameTime.loadNBTData(this.nbtTag);
             });
         }
     }

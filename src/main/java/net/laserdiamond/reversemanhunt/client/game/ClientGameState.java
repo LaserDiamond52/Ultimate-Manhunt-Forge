@@ -1,36 +1,36 @@
 package net.laserdiamond.reversemanhunt.client.game;
 
-import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.RMGame;
 
 /**
- * {@linkplain RMGameState.State Game state} on the CLIENT
+ * {@linkplain RMGame.State Game state} on the CLIENT
  */
 public class ClientGameState {
 
-    private static RMGameState.State gameState;
+    private static RMGame.State gameState;
 
-    public static void setGameState(RMGameState.State gameState)
+    public static void setGameState(RMGame.State gameState)
     {
         ClientGameState.gameState = gameState;
     }
 
-    public static RMGameState.State getGameState()
+    public static RMGame.State getGameState()
     {
         return ClientGameState.gameState;
     }
 
     public static boolean isGameRunning()
     {
-        return ClientGameState.gameState == RMGameState.State.STARTED || ClientGameState.gameState == RMGameState.State.IN_PROGRESS;
+        return ClientGameState.gameState == RMGame.State.STARTED || ClientGameState.gameState == RMGame.State.IN_PROGRESS;
     }
 
     public static boolean isGameNotInProgress()
     {
-        return ClientGameState.gameState == RMGameState.State.PAUSED || ClientGameState.gameState == RMGameState.State.NOT_STARTED;
+        return ClientGameState.gameState == RMGame.State.PAUSED || ClientGameState.gameState == RMGame.State.NOT_STARTED;
     }
 
     public static boolean hasGameBeenStarted()
     {
-        return isGameRunning() || ClientGameState.gameState == RMGameState.State.PAUSED;
+        return isGameRunning() || ClientGameState.gameState == RMGame.State.PAUSED;
     }
 }

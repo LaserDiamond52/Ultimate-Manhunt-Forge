@@ -1,9 +1,9 @@
 package net.laserdiamond.reversemanhunt.event;
 
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
-import net.laserdiamond.reversemanhunt.api.ReverseManhuntGameStateEvent;
-import net.laserdiamond.reversemanhunt.capability.PlayerHunter;
-import net.laserdiamond.reversemanhunt.capability.PlayerSpeedRunner;
+import net.laserdiamond.reversemanhunt.api.event.ReverseManhuntGameStateEvent;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
+import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;

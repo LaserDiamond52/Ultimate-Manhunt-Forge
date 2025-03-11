@@ -1,6 +1,7 @@
-package net.laserdiamond.reversemanhunt.capability;
+package net.laserdiamond.reversemanhunt.capability.hunter;
 
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
+import net.laserdiamond.reversemanhunt.capability.AbstractCapability;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 @Mod.EventBusSubscriber(modid = ReverseManhunt.MODID)
-public class PlayerHunterCapability implements ICapabilityProvider, INBTSerializable<CompoundTag> {
+public class PlayerHunterCapability extends AbstractCapability<PlayerHunter> {
 
     public static Capability<PlayerHunter> PLAYER_HUNTER = CapabilityManager.get(new CapabilityToken<>() {});
 
@@ -31,7 +32,7 @@ public class PlayerHunterCapability implements ICapabilityProvider, INBTSerializ
         {
             if (!player.getCapability(PLAYER_HUNTER).isPresent())
             {
-                event.addCapability(ReverseManhunt.fromRMPath("hunter"), new PlayerHunterCapability());
+                event.addCapability(ReverseManhunt.fromRMPath("hunter"), new PlayerHunterCapability(player));
             }
         }
     }
@@ -55,15 +56,19 @@ public class PlayerHunterCapability implements ICapabilityProvider, INBTSerializ
         }
     }
 
-    private final LazyOptional<PlayerHunter> optional = LazyOptional.of(this::createPlayerHunter);
-
     private PlayerHunter playerHunter = null;
+    private final Player player;
 
-    private PlayerHunter createPlayerHunter()
+    private PlayerHunterCapability(Player player)
+    {
+        this.player = player;
+    }
+
+    protected PlayerHunter createCapability()
     {
         if (this.playerHunter == null)
         {
-            this.playerHunter = new PlayerHunter();
+            this.playerHunter = new PlayerHunter(this.player.getUUID());
         }
         return this.playerHunter;
     }
@@ -72,20 +77,8 @@ public class PlayerHunterCapability implements ICapabilityProvider, INBTSerializ
     public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
         if (cap == PLAYER_HUNTER)
         {
-            return this.optional.cast();
+            return this.capabilityOptional.cast();
         }
         return LazyOptional.empty();
-    }
-
-    @Override
-    public CompoundTag serializeNBT(HolderLookup.Provider registryAccess) {
-        CompoundTag nbt = new CompoundTag();
-        this.createPlayerHunter().saveNBTData(nbt);
-        return nbt;
-    }
-
-    @Override
-    public void deserializeNBT(HolderLookup.Provider registryAccess, CompoundTag nbt) {
-        this.createPlayerHunter().loadNBTData(nbt);
     }
 }

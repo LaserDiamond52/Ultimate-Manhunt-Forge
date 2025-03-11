@@ -3,13 +3,16 @@ package net.laserdiamond.reversemanhunt.commands.gamerule;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.RMGame;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
+/**
+ * Command used to specify if friendly fire should be allowed between players of the same team
+ */
 public class SetFriendlyFireCommand {
 
     private static final int PERMISSION_LEVEL = 2;
@@ -41,13 +44,13 @@ public class SetFriendlyFireCommand {
     private static int setFriendlyFire(CommandContext<CommandSourceStack> commandContext, boolean isFriendlyFire)
     {
         int i = 0;
-        if (RMGameState.State.hasGameBeenStarted())
+        if (RMGame.State.hasGameBeenStarted())
         {
             // Game started. Do not change
             logFailFriendlyFireUpdate(commandContext.getSource(), isFriendlyFire);
             return 0;
         }
-        RMGameState.setFriendlyFire(isFriendlyFire);
+        RMGame.setFriendlyFire(isFriendlyFire);
         logFriendlyFireUpdate(commandContext.getSource(), isFriendlyFire);
         return i;
     }

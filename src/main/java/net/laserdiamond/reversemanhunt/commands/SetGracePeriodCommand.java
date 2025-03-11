@@ -3,7 +3,7 @@ package net.laserdiamond.reversemanhunt.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.RMGame;
 import net.laserdiamond.reversemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
@@ -14,6 +14,11 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Command used for configuring the duration of the grace periods for hunters and speed runners
+ * <p>Hunter grace period happens at the start of the game, giving speed runners a head-start</p>
+ * <p>Speed runner grace period happens when they respawn after being killed by a hunter (or dying near a hunter)</p>
+ */
 public class SetGracePeriodCommand {
 
     private static final int PERMISSION_LEVEL = 2;
@@ -69,7 +74,7 @@ public class SetGracePeriodCommand {
     private static int setGracePeriod(CommandContext<CommandSourceStack> commandContext, @NotNull Team team, int newDuration)
     {
         int i = 0;
-        if (RMGameState.State.hasGameBeenStarted())
+        if (RMGame.State.hasGameBeenStarted())
         {
             logFailGracePeriodChange(commandContext.getSource(), FailReason.GAME_STARTED, newDuration);
             return 0;
@@ -83,13 +88,13 @@ public class SetGracePeriodCommand {
         {
             case HUNTERS ->
             {
-                RMGameState.setHunterGracePeriod(newDuration);
+                RMGame.setHunterGracePeriod(newDuration);
                 RMPackets.sendToAllClients(new HunterGracePeriodDurationS2CPacket(newDuration));
                 logGracePeriodChange(commandContext.getSource(), team, newDuration);
             }
             case SPEED_RUNNERS ->
             {
-                RMGameState.setSpeedRunnerGracePeriod(newDuration);
+                RMGame.setSpeedRunnerGracePeriod(newDuration);
                 RMPackets.sendToAllClients(new SpeedRunnerGracePeriodDurationS2CPacket(newDuration));
                 logGracePeriodChange(commandContext.getSource(), team, newDuration);
             }

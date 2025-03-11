@@ -1,26 +1,26 @@
 package net.laserdiamond.reversemanhunt.network.packet.game;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.reversemanhunt.RMGameState;
+import net.laserdiamond.reversemanhunt.RMGame;
 import net.laserdiamond.reversemanhunt.client.game.ClientGameState;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 /**
- * {@linkplain NetworkPacket Packet} sent from the server to the client to indicate the current {@link RMGameState.State game state}
+ * {@linkplain NetworkPacket Packet} sent from the server to the client to indicate the current {@link RMGame.State game state}
  */
 public class GameStateS2CPacket extends NetworkPacket {
 
-    private final RMGameState.State gameState;
+    private final RMGame.State gameState;
 
-    public GameStateS2CPacket(RMGameState.State gameState)
+    public GameStateS2CPacket(RMGame.State gameState)
     {
         this.gameState = gameState;
     }
 
     public GameStateS2CPacket(FriendlyByteBuf buf)
     {
-        this.gameState = RMGameState.State.fromOrdinal(buf.readInt());
+        this.gameState = RMGame.State.fromOrdinal(buf.readInt());
     }
 
     @Override

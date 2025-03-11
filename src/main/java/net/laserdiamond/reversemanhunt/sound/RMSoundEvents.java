@@ -1,9 +1,6 @@
 package net.laserdiamond.reversemanhunt.sound;
 
-import net.laserdiamond.reversemanhunt.RMGameState;
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
-import net.laserdiamond.reversemanhunt.network.RMPackets;
-import net.laserdiamond.reversemanhunt.network.packet.speedrunner.HunterDetectionS2CPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -51,7 +48,7 @@ public class RMSoundEvents {
             }
             sm.increment(player);
         }
-        RMPackets.sendToPlayer(new HunterDetectionS2CPacket(true), player);
+
     }
 
     public static void stopDetectionSound(Player player)
@@ -62,7 +59,6 @@ public class RMSoundEvents {
             sm.reset(player);
             serverPlayer.connection.send(new ClientboundStopSoundPacket(HUNTER_DETECTED.getId(), SoundSource.MUSIC));
         }
-        RMPackets.sendToPlayer(new HunterDetectionS2CPacket(false), player);
     }
 
     public static void playFlatlineSound(Player player)

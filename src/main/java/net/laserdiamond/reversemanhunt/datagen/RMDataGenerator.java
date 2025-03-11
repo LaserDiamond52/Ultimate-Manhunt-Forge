@@ -37,6 +37,6 @@ public final class RMDataGenerator extends LUDataGenerator<RMDataGenerator> {
 
     @Override
     protected @NotNull LULanguageProvider<RMDataGenerator> languageProvider(PackOutput packOutput) {
-        return new LULanguageProvider<>(packOutput, this, LanguageRegistry.Language.EN_US);
+        return new RMLanguageProvider(packOutput, this, LanguageRegistry.Language.EN_US);
     }
 }
