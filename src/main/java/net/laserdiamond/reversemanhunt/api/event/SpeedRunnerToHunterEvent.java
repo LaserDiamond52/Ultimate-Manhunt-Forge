@@ -4,6 +4,7 @@ import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunter;
 import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
+import net.laserdiamond.reversemanhunt.item.WindTorchItem;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterCapabilitySyncS2CPacket;
@@ -26,6 +27,10 @@ public class SpeedRunnerToHunterEvent extends PlayerEvent {
         super(player);
         this.isBuffedHunter = isBuffedHunter;
         this.wasKilled = wasKilled;
+        if (player.level().isClientSide)
+        {
+            return;
+        }
         player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
         {
             player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
@@ -39,6 +44,9 @@ public class SpeedRunnerToHunterEvent extends PlayerEvent {
                 {
                     player.sendSystemMessage(Component.literal(ChatFormatting.DARK_RED + "You have lost all your lives and are now a Hunter!")); // Tell player they are now a hunter
                 }
+
+                // Hunters should not have Wind Torches
+                player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
 
                 RMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(PlayerSpeedRunner.getRemainingSpeedRunners().size(), PlayerHunter.getHunters().size()));
             });

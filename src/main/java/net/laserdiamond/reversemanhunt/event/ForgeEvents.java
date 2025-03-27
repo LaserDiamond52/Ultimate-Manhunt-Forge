@@ -13,6 +13,9 @@ import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunnerC
 import net.laserdiamond.reversemanhunt.commands.*;
 import net.laserdiamond.reversemanhunt.commands.gamerule.SetFriendlyFireCommand;
 import net.laserdiamond.reversemanhunt.commands.gamerule.SetHardcoreCommand;
+import net.laserdiamond.reversemanhunt.commands.gamerule.SetWindTorchesCommand;
+import net.laserdiamond.reversemanhunt.item.RMItems;
+import net.laserdiamond.reversemanhunt.item.WindTorchItem;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeCapabilitySyncS2CPacket;
@@ -32,6 +35,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -55,7 +59,8 @@ public class ForgeEvents {
         SetGracePeriodCommand.register(event.getDispatcher());
         SetRemainingSpeedRunnerLivesCommand.register(event.getDispatcher());
         MaxSpeedRunnerLivesCommand.register(event.getDispatcher());
-        // TODO: Command for changing the game start position
+        SetRMSpawnCommand.register(event.getDispatcher());
+        SetWindTorchesCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -283,8 +288,13 @@ public class ForgeEvents {
         RMPackets.sendToPlayer(new SpeedRunnerGracePeriodDurationS2CPacket(RMGame.getSpeedRunnerGracePeriod()), player); // Let the player know the speed runner grace period
         RMPackets.sendToPlayer(new SpeedRunnerMaxLifeChangeS2CPacket(PlayerSpeedRunner.getMaxLives()), player); // Let the player know how many lives speed runners can have
         RMPackets.sendToPlayer(new RemainingPlayerCountS2CPacket(PlayerSpeedRunner.getRemainingSpeedRunners().size(), PlayerHunter.getHunters().size()), player); // Let the player know how many remaining players on each team
-
         // Game Time packets and updates are sent every tick. It is redundant to send them at this moment
+
+        if (!RMGame.isWindTorchEnabled())
+        {
+            player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
+        }
+
         if (RMGame.State.hasGameBeenStarted()) // Check if the game has been started
         {
             if (!RMGame.containsLoggedPlayerUUID(player)) // Is the player not part of this iteration (did they join when a game has already started)?
@@ -296,7 +306,6 @@ public class ForgeEvents {
                     // Assign new player their lives (assume they are a speed runner by default)
                     playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
                     playerSpeedRunner.setWasLastKilledByHunter(false);
-//                    playerSpeedRunner.setIsNearHunter(false);
                     RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
                     RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
                 });
@@ -308,17 +317,27 @@ public class ForgeEvents {
                     RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
                     RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
                 });
-            }
-            if (RMGame.State.isGameRunning())
-            {
-                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                if (RMGame.isWindTorchEnabled()) // Is the Wind Torch enabled?
                 {
-                    if (playerHunter.isHunter() && playerHunter.isBuffed())
+                    player.getInventory().add(new ItemStack(RMItems.WIND_TORCH.get())); // Grant the player a Wind Torch
+                }
+            }
+            player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+            {
+                if (playerHunter.isHunter())
+                {
+                    if (playerHunter.isBuffed() && RMGame.State.isGameRunning())
                     {
                         player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Grant player hunter attributes if they are a buffed hunter
                     }
-                });
-            }
+                    if (RMGame.getCurrentGameTime() < RMGame.getHunterGracePeriod())
+                    {
+                        player.getAbilities().mayfly = true;
+                        player.getAbilities().flying = true;
+                        player.onUpdateAbilities();
+                    }
+                }
+            });
         }
         player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner -> RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player));
         player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter -> RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player));

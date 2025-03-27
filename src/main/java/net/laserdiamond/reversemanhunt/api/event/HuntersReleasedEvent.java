@@ -40,8 +40,6 @@ public class HuntersReleasedEvent extends Event implements PlayerGameSpawner {
                 {
                     Player trackedPlayer = availablePlayerSpeedRunners.getFirst();
                     playerHunter.setPlayerToTrack(0, trackedPlayer); // Default all hunters to track this player
-
-//                    RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket());
                     RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
                 }
             });

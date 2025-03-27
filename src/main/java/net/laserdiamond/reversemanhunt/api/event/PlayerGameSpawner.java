@@ -2,6 +2,7 @@ package net.laserdiamond.reversemanhunt.api.event;
 
 import net.laserdiamond.laserutils.util.raycast.ServerRayCast;
 import net.laserdiamond.reversemanhunt.RMGame;
+import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
@@ -44,6 +45,13 @@ public interface PlayerGameSpawner {
 
             Vec3 lastPos = src.getCurrentPosition(); // Get last position
             player.teleportTo(overworld, lastPos.x, lastPos.y + 1, lastPos.z, relativeMovements, player.getYRot(), player.getXRot()); // teleport player
+
+            if (!(player.isCreative() || player.isSpectator())) // Check that the player is not in creative or spectator
+            {
+                player.getAbilities().mayfly = false;
+                player.getAbilities().flying = false;
+                player.onUpdateAbilities();
+            }
         }
     }
 

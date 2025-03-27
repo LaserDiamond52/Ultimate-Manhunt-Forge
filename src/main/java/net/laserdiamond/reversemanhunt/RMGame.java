@@ -13,15 +13,14 @@ import net.laserdiamond.reversemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.TrackingSpeedRunnerS2CPacket;
 import net.laserdiamond.reversemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
 import net.laserdiamond.reversemanhunt.sound.RMSoundEvents;
-import net.laserdiamond.reversemanhunt.util.RMMath;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -54,7 +53,14 @@ public class RMGame {
      */
     private static int speedRunnerGracePeriodTicks = 600; // 30 seconds
 
+    /**
+     * The x spawn coordinate of the Reverse Manhunt
+     */
     private static int xSpawnCoordinate = 0;
+
+    /**
+     * The z spawn coordinate of hte Reverse Manhunt
+     */
     private static int zSpawnCoordinate = 0;
 
     /**
@@ -66,6 +72,11 @@ public class RMGame {
      * Determines if speed runners lose a life if they die from a cause unrelated to a hunter
      */
     private static boolean hardcore = false; // Determines if a speed runner loses a life if they die at all
+
+    /**
+     * Determines if the {@linkplain net.laserdiamond.reversemanhunt.item.RMItems#WIND_TORCH Wind Torch} item is enabled
+     */
+    private static boolean windTorchEnabled = true; // Determines if the Wind Torch is enabled
 
     /**
      * A {@link Set} of player UUIDs for the people currently in an iteration of the game
@@ -271,6 +282,20 @@ public class RMGame {
         return zSpawnCoordinate;
     }
 
+    /**
+     * Sets if the {@linkplain net.laserdiamond.reversemanhunt.item.RMItems#WIND_TORCH Wind Torch} item is to be granted to speed runners
+     * @param enabled True if the item should be granted, false otherwise
+     */
+    public static void setWindTorchEnabled(boolean enabled)
+    {
+        windTorchEnabled = enabled;
+    }
+
+    public static boolean isWindTorchEnabled()
+    {
+        return windTorchEnabled;
+    }
+
     @SubscribeEvent
     public static void onServerTickPre(TickEvent.ServerTickEvent.Pre event)
     {
@@ -330,8 +355,7 @@ public class RMGame {
                     if (currentGameTime < hunterGracePeriodTicks)
                     {
                         player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
-                        // FIXME: Flying must be enabled on the server
-                        player.teleportTo(0, 1000, 0); // Hunters should be teleported to an unreachable place
+                        player.teleportTo(xSpawnCoordinate, 1000, zSpawnCoordinate); // Hunters should be teleported to an unreachable place
                         return; // End method here. Don't start tracking until hunters have been released
                     }
                     // Track chosen player
@@ -389,13 +413,28 @@ public class RMGame {
                     {
                         if (!trackedPlayer.level().dimension().equals(player.level().dimension())) // Are players in different dimensions?
                         {
-                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player);
+                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player and Hunter are not in the same dimension
                             return;
                         }
                         if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(trackedPlayer)) // Is the speed runner on grace period?
                         {
-                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
+                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is on grace period
                             return;
+                        }
+                        if (!trackedPlayer.isAlive()) // Is the tracked player alive?
+                        {
+                            RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is dead
+                            return;
+                        }
+                        LazyOptional<PlayerHunter> trackedPlayerHunterCap = trackedPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER); // Get hunter capability of tracked player
+                        if (trackedPlayerHunterCap.isPresent()) // Is the capability present?
+                        {
+                            PlayerHunter trackedPlayerHunter = trackedPlayerHunterCap.orElse(new PlayerHunter(trackedPlayerUUID));
+                            if (trackedPlayerHunter.isHunter()) // Is the tracked player a hunter (Player can become a hunter while being tracked)
+                            {
+                                RMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Player is a hunter. Do not track
+                                return;
+                            }
                         }
                     }
                     float distance = player.distanceTo(trackedPlayer);

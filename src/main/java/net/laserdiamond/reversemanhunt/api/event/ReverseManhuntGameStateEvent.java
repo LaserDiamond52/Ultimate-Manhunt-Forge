@@ -7,6 +7,7 @@ import net.laserdiamond.reversemanhunt.capability.hunter.PlayerHunterCapability;
 import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.laserdiamond.reversemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
 import net.laserdiamond.reversemanhunt.item.RMItems;
+import net.laserdiamond.reversemanhunt.item.WindTorchItem;
 import net.laserdiamond.reversemanhunt.network.RMPackets;
 import net.laserdiamond.reversemanhunt.network.packet.game.*;
 import net.laserdiamond.reversemanhunt.network.packet.hunter.HunterCapabilitySyncS2CPacket;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Events that are called when the {@linkplain RMGame.State Reverse Manhunt Game State} changes
@@ -36,6 +38,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         this.speedRunners = speedRunners;
         RMGame.setCurrentGameState(this.gameState()); // Set to the game state specified
         RMPackets.sendToAllClients(new GameStateS2CPacket(this.gameState())); // Send to all clients
+        this.speedRunners.forEach(this::forSpeedRunner);
+        this.hunters.forEach(this::forHunter);
     }
 
     /**
@@ -66,6 +70,18 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
     }
 
     /**
+     * Called for each Player Speed Runner
+     * @param player The {@linkplain Player player} that is a speed runner
+     */
+    protected abstract void forSpeedRunner(Player player);
+
+    /**
+     * Called for each Player Hunter
+     * @param player The {@linkplain Player player} that is a hunter
+     */
+    protected abstract void forHunter(Player player);
+
+    /**
      * Event called when the Revers Manhunt game starts
      */
     public static class Start extends ReverseManhuntGameStateEvent implements PlayerGameSpawner
@@ -74,77 +90,6 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         {
             super(hunters, speedRunners);
             RMGame.resetGameTime(); // Reset the game time
-            for (Player player : this.speedRunners)
-            {
-                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
-                player.tickCount = 0; // Reset tick counts
-                player.setHealth(player.getMaxHealth()); // Reset back to max health
-                player.getInventory().clearContent(); // Clear items
-                player.setItemSlot(EquipmentSlot.MAINHAND, RMItems.WIND_TORCH.get().getDefaultInstance()); // Give wind torch
-                player.getFoodData().eat(200, 1.0F); // Reset food level
-
-                if (!player.level().isClientSide) // Are we on the server?
-                {
-                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-                    {
-                        playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
-                        playerSpeedRunner.setWasLastKilledByHunter(false);
-                        playerSpeedRunner.setGracePeriodTimeStamp(0);
-                        RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-                        RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
-                    });
-                    player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-                    {
-                        // Speed runner is not a hunter or a buffed hunter
-                        playerHunter.setHunter(false);
-                        playerHunter.setBuffed(false);
-                        RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
-                        RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
-                    });
-
-                    this.spawn(player); // Move speed runners to spawn position
-                }
-
-            }
-            for (Player player : this.hunters)
-            {
-                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
-                player.tickCount = 0; // Reset tick counts
-                player.setHealth(player.getMaxHealth()); // Reset back to max health
-                player.getFoodData().eat(200, 1.0F); // Reset food level
-                player.getInventory().clearContent(); // Clear items
-
-                if (!player.level().isClientSide)
-                {
-                    player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-                    {
-                        playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
-                        playerSpeedRunner.setWasLastKilledByHunter(false);
-                        playerSpeedRunner.setGracePeriodTimeStamp(0);
-                        RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-                        RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
-                    });
-                    player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-                    {
-                        if (playerHunter.isHunter()) // Ensure that the player is a hunter
-                        {
-                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Add spawn attributes
-                            if (playerHunter.isBuffed()) // Add buff attributes
-                            {
-                                player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
-                                player.setHealth(player.getMaxHealth());
-                            }
-                        }
-                    });
-
-                    MinecraftServer mcServer = player.getServer();
-                    if (mcServer != null)
-                    {
-                        this.moveToOverworld(player, player.getServer()); // Move player to overworld
-                    }
-                }
-            }
-
             RMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(this.speedRunners.size(), this.hunters.size()));
         }
 
@@ -152,12 +97,91 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         public RMGame.State gameState() {
             return RMGame.State.STARTED;
         }
+
+        @Override
+        protected void forSpeedRunner(Player player)
+        {
+            if (!player.level().isClientSide) // Are we on the server?
+            {
+                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
+                player.tickCount = 0; // Reset tick counts
+                player.setHealth(player.getMaxHealth()); // Reset back to max health
+                player.getInventory().clearContent(); // Clear items
+                if (RMGame.isWindTorchEnabled()) // Check if Wind Torches are enabled
+                {
+                    player.setItemSlot(EquipmentSlot.MAINHAND, RMItems.WIND_TORCH.get().getDefaultInstance()); // Give wind torch
+                }
+                player.getFoodData().eat(200, 1.0F); // Reset food level
+
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+                {
+                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
+                    playerSpeedRunner.setWasLastKilledByHunter(false);
+                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                });
+                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                {
+                    // Speed runner is not a hunter or a buffed hunter
+                    playerHunter.setHunter(false);
+                    playerHunter.setBuffed(false);
+                    RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
+                });
+
+                this.spawn(player); // Move speed runners to spawn position
+            }
+        }
+
+        @Override
+        protected void forHunter(Player player)
+        {
+            if (!player.level().isClientSide)
+            {
+                RMGame.logPlayerUUID(player); // Log the player for this iteration of the game
+                player.tickCount = 0; // Reset tick counts
+                player.setHealth(player.getMaxHealth()); // Reset back to max health
+                player.getFoodData().eat(200, 1.0F); // Reset food level
+                player.getInventory().clearContent(); // Clear items
+
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+                {
+                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
+                    playerSpeedRunner.setWasLastKilledByHunter(false);
+                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                });
+                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                {
+                    if (playerHunter.isHunter()) // Ensure that the player is a hunter
+                    {
+                        player.getAbilities().mayfly = true;
+                        player.getAbilities().flying = true;
+                        player.onUpdateAbilities();
+                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Add spawn attributes
+                        if (playerHunter.isBuffed()) // Add buff attributes
+                        {
+                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
+                            player.setHealth(player.getMaxHealth());
+                        }
+                    }
+                });
+
+                MinecraftServer mcServer = player.getServer();
+                if (mcServer != null)
+                {
+                    this.moveToOverworld(player, player.getServer()); // Move player to overworld
+                }
+            }
+        }
     }
 
     /**
      * Event called when the Reverse Manhunt game ends
      */
-    public static class End extends ReverseManhuntGameStateEvent
+    public static class End extends ReverseManhuntGameStateEvent implements PlayerGameSpawner
     {
         private final Reason reason;
 
@@ -168,7 +192,44 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
             RMPackets.sendToAllClients(new GameEndAnnounceS2CPacket(this.reason));
             RMPackets.sendToAllClients(new GameTimeS2CPacket(0)); // Reset Game Time
             RMGame.wipeLoggedPlayerUUIDs(); // Wipe the logged players
-            for (Player player : this.hunters)
+        }
+
+        public Reason getReason() {
+            return reason;
+        }
+
+        @Override
+        public RMGame.State gameState() {
+            return RMGame.State.NOT_STARTED;
+        }
+
+        @Override
+        protected void forSpeedRunner(Player player)
+        {
+            if (!player.level().isClientSide)
+            {
+                RMSoundEvents.stopDetectionSound(player);
+                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+                {
+                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
+                    playerSpeedRunner.setWasLastKilledByHunter(false);
+                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                });
+                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
+                {
+                    playerGameTime.setGameTime(0);
+                    RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
+                });
+                player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
+            }
+        }
+
+        @Override
+        protected void forHunter(Player player)
+        {
+            if (!player.level().isClientSide)
             {
                 RMSoundEvents.stopDetectionSound(player);
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
@@ -183,6 +244,13 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     playerHunter.setBuffed(false);
                     RMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
                     RMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
+                    if (this.getGameTime() < RMGame.getHunterGracePeriod()) // Are hunters still on grace period?
+                    {
+                        this.spawn(player); // Teleport hunter back down
+
+                        // This is necessary since hunters are teleported 1000 blocks in the air and will be kicked for flying if
+                        // teleportation back to the surface is not performed
+                    }
                 });
                 player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
                 {
@@ -197,33 +265,8 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     playerGameTime.setGameTime(0);
                     RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
                 });
+                player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
             }
-            for (Player player : this.speedRunners)
-            {
-                RMSoundEvents.stopDetectionSound(player);
-                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-                {
-                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
-                    playerSpeedRunner.setWasLastKilledByHunter(false);
-                    playerSpeedRunner.setGracePeriodTimeStamp(0);
-                    RMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-                    RMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
-                });
-                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-                {
-                    playerGameTime.setGameTime(0);
-                    RMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
-                });
-            }
-        }
-
-        public Reason getReason() {
-            return reason;
-        }
-
-        @Override
-        public RMGame.State gameState() {
-            return RMGame.State.NOT_STARTED;
         }
 
         public enum Reason
@@ -266,7 +309,22 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         public Pause(List<Player> hunters, List<Player> speedRunners)
         {
             super(hunters, speedRunners);
-            for (Player player : hunters)
+        }
+
+        @Override
+        public RMGame.State gameState() {
+            return RMGame.State.PAUSED;
+        }
+
+        @Override
+        protected void forSpeedRunner(Player player) {
+
+        }
+
+        @Override
+        protected void forHunter(Player player)
+        {
+            if (!player.level().isClientSide)
             {
                 player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
                 {
@@ -281,11 +339,6 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                 });
             }
         }
-
-        @Override
-        public RMGame.State gameState() {
-            return RMGame.State.PAUSED;
-        }
     }
 
     /**
@@ -297,7 +350,29 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
         public Resume(List<Player> hunters, List<Player> speedRunners)
         {
             super(hunters, speedRunners);
-            for (Player player : hunters)
+        }
+
+        @Override
+        public RMGame.State gameState() {
+            return RMGame.State.IN_PROGRESS;
+        }
+
+        @Override
+        protected void forSpeedRunner(Player player)
+        {
+            if (!player.level().isClientSide)
+            {
+                if (!RMGame.containsLoggedPlayerUUID(player))
+                {
+                    RMGame.logPlayerUUID(player);
+                }
+            }
+        }
+
+        @Override
+        protected void forHunter(Player player)
+        {
+            if (!player.level().isClientSide)
             {
                 if (!RMGame.containsLoggedPlayerUUID(player)) // Check if we have this player logged
                 {
@@ -318,18 +393,6 @@ public abstract class ReverseManhuntGameStateEvent extends Event {
                     }
                 });
             }
-            for (Player player : speedRunners)
-            {
-                if (!RMGame.containsLoggedPlayerUUID(player))
-                {
-                    RMGame.logPlayerUUID(player);
-                }
-            }
-        }
-
-        @Override
-        public RMGame.State gameState() {
-            return RMGame.State.IN_PROGRESS;
         }
     }
 }

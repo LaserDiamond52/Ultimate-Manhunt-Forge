@@ -1,6 +1,7 @@
 package net.laserdiamond.reversemanhunt.item;
 
 import net.laserdiamond.laserutils.util.AssetSkipModel;
+import net.laserdiamond.reversemanhunt.RMGame;
 import net.laserdiamond.reversemanhunt.ReverseManhunt;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -55,5 +56,23 @@ public class WindTorchItem extends Item implements AssetSkipModel {
     @Override
     public boolean canAttackBlock(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer) {
         return !pPlayer.isCreative();
+    }
+
+    @Override
+    public void inventoryTick(ItemStack pStack, Level pLevel, Entity pEntity, int pSlotId, boolean pIsSelected)
+    {
+        if (pLevel.isClientSide)
+        {
+            return; // Ensure we are on the server
+        }
+        if (pEntity instanceof Player player)
+        {
+            if (!RMGame.isWindTorchEnabled()) // Is the wind torch enabled?
+            {
+                // Not enabled. Remove from inventory
+                player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
+            }
+        }
+
     }
 }

@@ -59,7 +59,6 @@ public class RMOverlays implements LayeredDraw.Layer {
 
         LayeredDraw mcLayers = MINECRAFT.gui.layers;
         mcLayers.add(hudOverlay, () -> !MINECRAFT.options.hideGui)
-//                .add(detectionOverlay, () -> true)
                 .add(new SpeedRunnerHunterDetectionOverlay())
                 .add(new SpeedRunnerGracePeriodOverlay());
     }
@@ -243,7 +242,6 @@ public class RMOverlays implements LayeredDraw.Layer {
             {
                 if (trackedPlayerUUID != player.getUUID()) // Do not track self
                 {
-//                    guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + "Nearest Speed Runner is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
                     guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + trackedPlayerName + " is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
 
                     Vec3 speedRunnerPos = ClientTrackedSpeedRunner.getPosition(); // Set the position to track

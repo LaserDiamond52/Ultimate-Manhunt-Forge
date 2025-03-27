@@ -49,8 +49,10 @@ public class PlayerHunter extends AbstractCapabilityData<PlayerHunter> {
     }
 
     /**
+     * @deprecated - Hunters during their grace period are stuck in the air before being teleported back down. There is no reason to apply slowness and prevent jumping
      * @return A {@link HashMultimap} of {@linkplain Attribute attributes} and {@linkplain AttributeModifier attribute modifiers} to be applied to each Hunter upon starting the game
      */
+    @Deprecated
     public static HashMultimap<Holder<Attribute>, AttributeModifier> createHunterSpawnAttributes()
     {
         HashMultimap<Holder<Attribute>, AttributeModifier> ret = HashMultimap.create();
