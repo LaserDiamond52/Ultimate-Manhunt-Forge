@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerToHunterEvent;
+import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerToSpectatorEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
@@ -77,10 +78,14 @@ public class SetPlayerRoleCommands {
                     MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(serverPlayer, isBuffedHunter, false));
                     if (isBuffedHunter)
                     {
-                        source.sendSuccess(() -> Component.literal(serverPlayer.getName().getString() + "has been set to be a buffed hunter"), true);
+                        source.sendSuccess(() -> Component.literal(serverPlayer.getName().getString() + " has been set to be a buffed hunter"), true);
                     }
                 } else
                 {
+                    if (playerRole == UMGame.PlayerRole.SPECTATOR)
+                    {
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(serverPlayer, false));
+                    }
                     umPlayer.setBuffedHunter(false);
                 }
 

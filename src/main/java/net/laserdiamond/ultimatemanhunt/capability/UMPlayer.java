@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import net.laserdiamond.laserutils.capability.AbstractCapabilityData;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.UMCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
@@ -120,12 +121,12 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         return ret;
     }
 
-    public static boolean isSpeedRunnerOnGracePeriod(Player player)
+    public static boolean isSpeedRunnerOnGracePeriodServer(Player player)
     {
         AtomicBoolean ret = new AtomicBoolean();
         player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
-            ret.set(umPlayer.isSpeedRunnerOnGracePeriod());
+            ret.set(umPlayer.isSpeedRunnerOnGracePeriodServer());
         });
         return ret.get();
     }
@@ -379,9 +380,14 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         return this.getRole() == UMGame.PlayerRole.SPECTATOR;
     }
 
-    public boolean isSpeedRunnerOnGracePeriod()
+    public boolean isSpeedRunnerOnGracePeriodServer()
     {
         return this.isSpeedRunner() && (UMGame.getCurrentGameTime() < this.getGracePeriodTimeStamp());
+    }
+
+    public boolean isSpeedRunnerOnGracePeriodClient()
+    {
+        return this.isSpeedRunner() && (ClientGameTime.getGameTime() < this.getGracePeriodTimeStamp());
     }
 
     public void reset(Player player, UMGame.PlayerRole role, boolean logPlayer)

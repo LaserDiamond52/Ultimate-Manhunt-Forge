@@ -366,7 +366,7 @@ public class UMGame {
                     // Track chosen player
                     for (Player speedRunnerPlayer : UMPlayer.getAvailableSpeedRunners(player))
                     {
-                        if (UMPlayer.isSpeedRunnerOnGracePeriod(player))
+                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(player))
                         {
                             continue; // Speed runner is on grace period. Do not continue
                         }
@@ -420,7 +420,7 @@ public class UMGame {
                             UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player and Hunter are not in the same dimension
                             return;
                         }
-                        if (UMPlayer.isSpeedRunnerOnGracePeriod(trackedPlayer)) // Is the speed runner on grace period?
+                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(trackedPlayer)) // Is the speed runner on grace period?
                         {
                             UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is on grace period
                             return;

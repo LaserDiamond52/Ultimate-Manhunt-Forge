@@ -13,7 +13,7 @@ public final class SpeedRunnerGracePeriodOverlay implements UMHUDOverlay {
     @Override
     public void onRender(LocalPlayer player, UMPlayer umPlayer, GuiGraphics guiGraphics, DeltaTracker deltaTracker)
     {
-        if (umPlayer.isSpeedRunnerOnGracePeriod())
+        if (umPlayer.isSpeedRunnerOnGracePeriodClient())
         {
             int width = guiGraphics.guiWidth();
             int height = guiGraphics.guiHeight();

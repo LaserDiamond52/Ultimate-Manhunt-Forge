@@ -83,7 +83,8 @@ public class ForgeEvents {
                 {
                     if (UMGame.isHardcore())
                     {
-                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, false));
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
+                        return; // Took life from hardcore speed runner, end method
                     }
                     if (sourceEntity instanceof Player killer)
                     {
@@ -91,12 +92,12 @@ public class ForgeEvents {
                         {
                             if (umPlayer.isHunter())
                             {
-                                MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
+                                MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, killer));
                             } else
                             {
                                 if (isNearHunter(deadPlayer))
                                 {
-                                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
+                                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, killer));
                                 }
                             }
                         });
@@ -104,7 +105,7 @@ public class ForgeEvents {
                     }
                     if (isNearHunter(deadPlayer))
                     {
-                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
 
                     }
                 } else if (deadUMPlayer.isHunter()) // Player is a hunter
@@ -189,9 +190,9 @@ public class ForgeEvents {
                                     event.setCanceled(true);
                                 }
 
-                            } else if (attackingUMPlayer.isSpeedRunner())
+                            } else if (attackedUMPlayer.isSpeedRunner())
                             {
-                                if (attackedUMPlayer.isWasLastKilledByHunter() && UMPlayer.isSpeedRunnerOnGracePeriod(attackedPlayer))
+                                if (attackedUMPlayer.isWasLastKilledByHunter() && UMPlayer.isSpeedRunnerOnGracePeriodServer(attackedPlayer))
                                 {
                                     long duration = (attackedUMPlayer.getGracePeriodTimeStamp() - UMGame.getCurrentGameTime()) / 20;
                                     attackingPlayer.sendSystemMessage(Component.literal(ChatFormatting.BLUE + attackedPlayer.getName().getString() + " is immune to hunters for " + ChatFormatting.YELLOW + duration + ChatFormatting.BLUE + " seconds"));

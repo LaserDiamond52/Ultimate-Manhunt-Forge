@@ -13,8 +13,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
@@ -34,7 +37,8 @@ public class UltimateManhunt {
         return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 
-    public UltimateManhunt(FMLJavaModLoadingContext context) {
+    public UltimateManhunt(FMLJavaModLoadingContext context)
+    {
         IEventBus modEventBus = context.getModEventBus();
 
         this.register(modEventBus);
@@ -45,14 +49,6 @@ public class UltimateManhunt {
         new UMDataGenerator(eventBus);
         UMItems.register(eventBus);
         UMSoundEvents.registerSounds(eventBus);
-        LUOverlayManager.createOverlayManager(eventBus)
-                .registerConditionalOverlayFirst(new LayeredDraw()
-                        .add(new SpeedRunnerLivesOverlay())
-                        .add(new UpperScreenTextOverlay())
-                        .add(new HunterTrackerOverlay()),
-                        () -> !Minecraft.getInstance().options.hideGui)
-                .registerOverlayFirst(new SpeedRunnerHunterDetectionOverlay())
-                .registerOverlayFirst(new SpeedRunnerGracePeriodOverlay());
     }
 
     public static Level getLevel(Player player)
@@ -80,6 +76,25 @@ public class UltimateManhunt {
             }
         }
         return null;
+    }
+
+    @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    public static class Client
+    {
+
+        @SubscribeEvent
+        public static void onClientSetUp(FMLClientSetupEvent event)
+        {
+            new LUOverlayManager()
+                    .registerConditionalOverlayFirst(new LayeredDraw()
+                                    .add(new SpeedRunnerLivesOverlay())
+                                    .add(new UpperScreenTextOverlay())
+                                    .add(new HunterTrackerOverlay()),
+                            () -> !Minecraft.getInstance().options.hideGui)
+                    .registerOverlayFirst(new SpeedRunnerHunterDetectionOverlay())
+                    .registerOverlayFirst(new SpeedRunnerGracePeriodOverlay())
+                    .clientSetUp(event);
+        }
     }
 
 }

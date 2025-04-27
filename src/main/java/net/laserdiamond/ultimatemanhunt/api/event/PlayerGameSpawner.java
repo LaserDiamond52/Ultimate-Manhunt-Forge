@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.portal.DimensionTransition;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
@@ -56,7 +57,8 @@ public interface PlayerGameSpawner {
     default ServerLevel moveToOverworld(Player player, MinecraftServer mcServer)
     {
         ServerLevel overworld = mcServer.overworld();
-
+        DimensionTransition transition = new DimensionTransition(overworld, player, pEntity -> {});
+        player.changeDimension(transition);
         return overworld;
     }
 }

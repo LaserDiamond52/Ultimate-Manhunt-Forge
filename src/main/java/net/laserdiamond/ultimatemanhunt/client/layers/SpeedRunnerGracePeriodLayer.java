@@ -36,7 +36,7 @@ public final class SpeedRunnerGracePeriodLayer extends RenderLayer<AbstractClien
         {
             if (umPlayer.isSpeedRunner() && umPlayer.isWasLastKilledByHunter())
             {
-                if (umPlayer.isSpeedRunnerOnGracePeriod())
+                if (umPlayer.isSpeedRunnerOnGracePeriodClient())
                 {
                     GracePeriodArmorModel.render(this.getParentModel(), this.gracePeriodArmorModel, TEXTURE, poseStack, multiBufferSource, packedLight, player, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, 16777215);
                 }

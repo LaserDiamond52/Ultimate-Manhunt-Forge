@@ -17,33 +17,32 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
 
     private final boolean wasKilledByHunter;
 
-    public SpeedRunnerLifeLossEvent(Player player, boolean wasKilledByHunter) {
-        super(player);
-        this.wasKilledByHunter = wasKilledByHunter;
-
-        player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
+    public SpeedRunnerLifeLossEvent(Player speedRunner, Player hunter) {
+        super(speedRunner);
+        this.wasKilledByHunter = (hunter != null);
+        speedRunner.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
             umPlayer.subtractLife()
-                    .setWasLastKilledByHunter(this.wasKilledByHunter)
-                    .sendUpdateFromServerToSelf(player);
+                    .setWasLastKilledByHunter(wasKilledByHunter)
+                    .sendUpdateFromServerToSelf(speedRunner);
 
-            UMSoundEvents.playFlatlineSound(player);
             if (this.wasKilledByHunter)
             {
-                player.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were killed by a Hunter and lost a life!"));
+                UMSoundEvents.playFlatlineSound(speedRunner);
+                speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were killed by a Hunter and lost a life!"));
             } else
             {
-                player.sendSystemMessage(Component.literal(ChatFormatting.RED + "You died and lost a life!"));
+                speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You died and lost a life!"));
             }
 
             if (umPlayer.getLives() <= 0)
             {
                 if (UMGame.getDeadSpeedRunnerRole() == UMGame.PlayerRole.HUNTER)
                 {
-                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(player, UMPlayer.getIsBuffedHunterOnFinalDeath(), true));
+                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(speedRunner, UMPlayer.getIsBuffedHunterOnFinalDeath(), true));
                 } else
                 {
-                    umPlayer.resetToSpectator(player, false);
+                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(speedRunner, this.wasKilledByHunter));
                 }
 
                 if (UMPlayer.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners

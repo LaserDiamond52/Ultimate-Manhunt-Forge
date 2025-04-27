@@ -50,6 +50,11 @@ public final class SpeedRunnerLivesOverlay implements UMHUDOverlay {
             }
 
             Component speedRunnerGracePeriodComponent = getSpeedRunnerGracePeriodComponent(gameTime, umPlayer.getGracePeriodTimeStamp());
+
+            drawX = (guiGraphics.guiWidth() / 2);
+            double diff = guiGraphics.guiHeight() * 0.95678;
+            drawY = (int) (guiGraphics.guiHeight() - (diff));
+
             if (!speedRunnerGracePeriodComponent.getString().isEmpty())
             {
                 guiGraphics.drawCenteredString(Minecraft.getInstance().font, speedRunnerGracePeriodComponent, drawX, drawY, ChatFormatting.BLUE.getColor());
