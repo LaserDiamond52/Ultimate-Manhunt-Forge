@@ -5,7 +5,7 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.laserutils.util.raycast.ServerRayCast;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -23,13 +23,11 @@ import java.util.List;
 
 public class SetUMSpawnCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("um_spawn_location")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("location", Vec2Argument.vec2())
                                         .executes(commandContext -> modifyRMSpawn(commandContext, Vec2Argument.getVec2(commandContext, "location"), true))

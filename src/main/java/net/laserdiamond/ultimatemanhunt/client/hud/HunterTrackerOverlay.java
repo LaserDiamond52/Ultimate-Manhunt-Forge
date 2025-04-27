@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientHunterGracePeriod;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientTrackedSpeedRunner;
@@ -152,5 +153,10 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
         RenderSystem.lineWidth(1.0F);
         GlStateManager._enableCull();
         GlStateManager._depthMask(true);
+    }
+
+    @Override
+    public boolean renderIfGameNotStarted() {
+        return ClientGameState.isGameRunning();
     }
 }

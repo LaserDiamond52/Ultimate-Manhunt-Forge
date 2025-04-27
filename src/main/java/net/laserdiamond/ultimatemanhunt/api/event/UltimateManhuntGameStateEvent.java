@@ -11,6 +11,7 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.RemainingPlayerCount
 import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GamePausedAnnounceS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameResumedS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameStartAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -86,25 +87,28 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     /**
      * Called for all players
      * @param player The {@linkplain Player player} being called upon
-     * @param umPlayer
+     * @param umPlayer The {@linkplain Player player's} {@linkplain UMPlayer Manhunt player data}
      */
     protected void forAllPlayers(Player player, UMPlayer umPlayer) {}
 
     /**
      * Called for each Player Speed Runner
      * @param player The {@linkplain Player player} that is a speed runner
+     * @param umPlayer The {@linkplain Player player's} {@linkplain UMPlayer Manhunt player data}
      */
     protected void forSpeedRunner(Player player, UMPlayer umPlayer) {}
 
     /**
      * Called for each Player Hunter
      * @param player The {@linkplain Player player} that is a hunter
+     * @param umPlayer The {@linkplain Player player's} {@linkplain UMPlayer Manhunt player data}
      */
     protected void forHunter(Player player, UMPlayer umPlayer) {}
 
     /**
      * Called for each Player Spectator
      * @param player The {@linkplain Player player} that is a spectator
+     * @param umPlayer The {@linkplain Player player's} {@linkplain UMPlayer Manhunt player data}
      */
     protected void forSpectators(Player player, UMPlayer umPlayer) {}
 
@@ -118,6 +122,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             super();
             UMGame.resetGameTime(); // Reset the game time
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
+            UMPackets.sendToAllClients(new GameStartAnnounceS2CPacket());
         }
 
         @Override
@@ -142,7 +147,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
                     serverPlayer.setGameMode(GameType.DEFAULT_MODE); // Set to survival
                 }
             }
-            UMPackets.sendToAllClients(new GameStartAnnounceS2CPacket());
         }
 
         @Override
@@ -295,17 +299,13 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         public Pause()
         {
             super();
+            UMPackets.sendToAllClients(new GamePausedAnnounceS2CPacket());
+            UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(0));
         }
 
         @Override
         public UMGame.State gameState() {
             return UMGame.State.PAUSED;
-        }
-
-        @Override
-        protected void forAllPlayers(Player player, UMPlayer umPlayer)
-        {
-            UMPackets.sendToAllClients(new GamePausedAnnounceS2CPacket());
         }
 
         @Override
@@ -330,17 +330,13 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         public Resume()
         {
             super();
+            UMPackets.sendToAllClients(new GameResumedS2CPacket());
+            UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(0));
         }
 
         @Override
         public UMGame.State gameState() {
             return UMGame.State.IN_PROGRESS;
-        }
-
-        @Override
-        protected void forAllPlayers(Player player, UMPlayer umPlayer)
-        {
-            UMPackets.sendToAllClients(new GameResumedS2CPacket());
         }
 
         @Override
@@ -364,21 +360,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
                 {
                     UMGame.logPlayerUUID(player); // Log them
                 }
-//                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//                {
-//                    if (playerHunter.isHunter()) // Ensure that the player is a hunter
-//                    {
-//                        if (UMGame.areHuntersOnGracePeriod()) // Is the game still on grace period?
-//                        {
-//                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
-//                        }
-//                        if (playerHunter.isBuffed()) // Is the player a buffed hunter?
-//                        {
-//                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
-//                        }
-//                    }
-//                });
-
                 if (umPlayer.isBuffedHunter())
                 {
                     player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes()); // Add buff attributes

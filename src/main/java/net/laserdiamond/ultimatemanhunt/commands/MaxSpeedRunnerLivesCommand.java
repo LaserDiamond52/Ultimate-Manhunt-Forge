@@ -3,8 +3,8 @@ package net.laserdiamond.ultimatemanhunt.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -15,13 +15,11 @@ import net.minecraft.network.chat.Component;
  */
 public class MaxSpeedRunnerLivesCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("speed_runner_max_lives")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("amount", IntegerArgumentType.integer(1, UMPlayer.MAX_LIVES))
                                         .executes(commandContext -> modifyMaxLives(commandContext, IntegerArgumentType.getInteger(commandContext, "amount")))

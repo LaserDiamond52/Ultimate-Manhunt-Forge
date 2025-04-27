@@ -4,9 +4,9 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.ultimatemanhunt.util.file.UMGameSettingProfileConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -24,13 +24,11 @@ import java.util.List;
  */
 public class UltimateManhuntGameCommands {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("ultimate_manhunt")
-                        .requires(commandSourceStack -> ForgeServerEvents.permission(commandSourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.literal("start")
                                         .executes(commandContext -> changeGameState(commandContext, UMGame.State.STARTED))

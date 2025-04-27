@@ -2,8 +2,8 @@ package net.laserdiamond.ultimatemanhunt.commands.gamerule;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -14,13 +14,11 @@ import net.minecraft.network.chat.Component;
  */
 public class SetBuffedHunterOnFinalDeathCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("buffed_hunter_on_final_death")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("isBuffedHunter", BoolArgumentType.bool())
                                         .executes(commandContext -> setIsBuffedHunterOnFinalDeath(commandContext.getSource(), BoolArgumentType.getBool(commandContext, "isBuffedHunter")))

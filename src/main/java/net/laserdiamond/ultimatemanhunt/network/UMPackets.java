@@ -58,7 +58,7 @@ public class UMPackets {
     private static void registerSpeedRunnerPackets()
     {
         // Speed Runner distance from hunter server to client
-        registerPacket(CloseDistanceFromHunterS2CPacket.class, CloseDistanceFromHunterS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+        registerPacket(SpeedRunnerDistanceFromHunterS2CPacket.class, SpeedRunnerDistanceFromHunterS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
         // Speed Runner Grace Period server to client
         registerPacket(SpeedRunnerGracePeriodDurationS2CPacket.class, SpeedRunnerGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);

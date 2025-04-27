@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.util.file.UMGameSettingProfileConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -13,13 +13,11 @@ import net.minecraft.network.chat.Component;
 
 public class UMGameProfileCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("um_game_profiles")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("game_profile_name", StringArgumentType.string())
                                         .then(
@@ -62,6 +60,7 @@ public class UMGameProfileCommand {
         int i = 0;
         if (UMGameSettingProfileConfig.doesGameProfileFileExist(profileName))
         {
+            new UMGameSettingProfileConfig(profileName).saveSettingsToFile();
             commandContext.getSource().sendSuccess(() -> Component.literal("Overwrote settings for Game Profile \"" + profileName + "\""), true);
             i++;
             return i;

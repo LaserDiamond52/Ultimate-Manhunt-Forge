@@ -3,10 +3,10 @@ package net.laserdiamond.ultimatemanhunt.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.laserdiamond.ultimatemanhunt.UMGame;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerToHunterEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerToSpectatorEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
 import net.minecraft.ChatFormatting;
@@ -23,13 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SetPlayerRoleCommands {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("um_roles")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("target", EntityArgument.players())
                                         .then(
@@ -88,6 +86,7 @@ public class SetPlayerRoleCommands {
                     }
                     umPlayer.setBuffedHunter(false);
                 }
+                umPlayer.sendUpdateFromServerToSelf(serverPlayer);
 
                 i.getAndIncrement();
             });

