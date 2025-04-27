@@ -13,6 +13,6 @@ public class UMLanguageProvider extends LULanguageProvider<UMDataGenerator> {
 
     @Override
     protected void addAdditionalTranslations() {
-        this.add(UMKeyBindings.CATEGORY, "Reverse Manhunt");
+        this.add(UMKeyBindings.CATEGORY, "Ultimate Manhunt");
     }
 }

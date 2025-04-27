@@ -3,18 +3,15 @@ package net.laserdiamond.ultimatemanhunt.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunner;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
 /**
- * Command used to configure the maximum amount of lives speed runners will have for the Reverse Manhunt game
+ * Command used to configure the maximum amount of lives speed runners will have for the Manhunt game
  */
 public class MaxSpeedRunnerLivesCommand {
 
@@ -26,7 +23,7 @@ public class MaxSpeedRunnerLivesCommand {
                 Commands.literal("speed_runner_max_lives")
                         .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
                         .then(
-                                Commands.argument("amount", IntegerArgumentType.integer(1, PlayerSpeedRunner.MAX_LIVES))
+                                Commands.argument("amount", IntegerArgumentType.integer(1, UMPlayer.MAX_LIVES))
                                         .executes(commandContext -> modifyMaxLives(commandContext, IntegerArgumentType.getInteger(commandContext, "amount")))
                         )
         );
@@ -45,13 +42,11 @@ public class MaxSpeedRunnerLivesCommand {
     private static int modifyMaxLives(CommandContext<CommandSourceStack> commandContext, int maxLives)
     {
         int i = 0;
-        if (UMGame.State.hasGameBeenStarted())
+        if (UMPlayer.setMaxLives(maxLives))
         {
             logFailMaxLifeChange(commandContext.getSource());
-            return 0;
+            return i;
         }
-        PlayerSpeedRunner.setMaxLives(maxLives);
-        UMPackets.sendToAllClients(new SpeedRunnerMaxLifeChangeS2CPacket(maxLives));
         logMaxLifeChange(commandContext.getSource(), maxLives);
         i++;
         return i;

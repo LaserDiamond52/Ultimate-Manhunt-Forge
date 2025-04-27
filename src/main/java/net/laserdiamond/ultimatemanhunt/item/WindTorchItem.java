@@ -33,7 +33,7 @@ public class WindTorchItem extends Item implements AssetSkipModel {
     private static ItemAttributeModifiers createAttributes()
     {
         return ItemAttributeModifiers.builder()
-                .add(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(UltimateManhunt.fromRMPath("base_attack_knockback"), 200F, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
+                .add(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(UltimateManhunt.fromUMPath("base_attack_knockback"), 200F, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
                 .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, -3.2F, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
                 .build();
     }

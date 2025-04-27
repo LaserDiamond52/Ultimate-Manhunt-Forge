@@ -3,7 +3,12 @@ package net.laserdiamond.ultimatemanhunt.network;
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.laserutils.network.NetworkPackets;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.network.packet.UMCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.*;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameEndAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GamePausedAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameResumedS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameStartAnnounceS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.*;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -15,7 +20,6 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.SimpleChannel;
 
 import java.util.function.Function;
@@ -29,7 +33,7 @@ public class UMPackets {
         event.enqueueWork(() -> registerPackets());
     }
 
-    public static SimpleChannel INSTANCE;
+    private static SimpleChannel INSTANCE;
 
     private static int packetId = 0;
 
@@ -40,7 +44,7 @@ public class UMPackets {
 
     private static void registerPackets()
     {
-        INSTANCE = ChannelBuilder.named(UltimateManhunt.fromRMPath("main"))
+        INSTANCE = ChannelBuilder.named(UltimateManhunt.fromUMPath("main"))
                 .serverAcceptedVersions((status, version) -> true)
                 .clientAcceptedVersions((status, version) -> true)
                 .networkProtocolVersion(1)
@@ -53,17 +57,11 @@ public class UMPackets {
 
     private static void registerSpeedRunnerPackets()
     {
-        // Speed Runner life change server to client
-        registerPacket(SpeedRunnerChangeS2CPacket.class, SpeedRunnerChangeS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
-
         // Speed Runner distance from hunter server to client
         registerPacket(CloseDistanceFromHunterS2CPacket.class, CloseDistanceFromHunterS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
         // Speed Runner Grace Period server to client
         registerPacket(SpeedRunnerGracePeriodDurationS2CPacket.class, SpeedRunnerGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
-
-        // Speed Runner Capability tracking
-        registerPacket(SpeedRunnerCapabilitySyncS2CPacket.class, SpeedRunnerCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
         // Speed Runner max lives server to client
         registerPacket(SpeedRunnerMaxLifeChangeS2CPacket.class, SpeedRunnerMaxLifeChangeS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
@@ -71,9 +69,6 @@ public class UMPackets {
 
     private static void registerHunterPackets()
     {
-        // Hunter Change server to client
-        registerPacket(HunterChangeS2CPacket.class, HunterChangeS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
-
         // Speed Runner distance server to client
         registerPacket(TrackingSpeedRunnerS2CPacket.class, TrackingSpeedRunnerS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
@@ -83,25 +78,31 @@ public class UMPackets {
         // Hunter Grace Period server to client
         registerPacket(HunterGracePeriodDurationS2CPacket.class, HunterGracePeriodDurationS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
-        // Hunter Capability tracking
-        registerPacket(HunterCapabilitySyncS2CPacket.class, HunterCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
-
         // Hunter change tracking speed runner server to client
         registerPacket(ChangeTrackingSpeedRunnerC2SPacket.class, ChangeTrackingSpeedRunnerC2SPacket::new, NetworkDirection.PLAY_TO_SERVER);
     }
 
     private static void registerGamePackets()
     {
+        // UM Player Capability Sync
+        registerPacket(UMCapabilitySyncS2CPacket.class, UMCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
         // Game State server to client
         registerPacket(GameStateS2CPacket.class, GameStateS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
         // Game Time server to client
         registerPacket(GameTimeS2CPacket.class, GameTimeS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
-        // Game Time capability server to client
-        registerPacket(GameTimeCapabilitySyncS2CPacket.class, GameTimeCapabilitySyncS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+        // Game Start Announce server to client
+        registerPacket(GameStartAnnounceS2CPacket.class, GameStartAnnounceS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
-        // Game End Announcement server to client
+        // Game Pause Announce server to client
+        registerPacket(GamePausedAnnounceS2CPacket.class, GamePausedAnnounceS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Game Resume Announce server to client
+        registerPacket(GameResumedS2CPacket.class, GameResumedS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Game End Announce server to client
         registerPacket(GameEndAnnounceS2CPacket.class, GameEndAnnounceS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
 
         // Hardcore update server to client
@@ -139,7 +140,7 @@ public class UMPackets {
      */
     public static <MSG> void sendToAllTrackingEntity(MSG message, Entity trackedEntity)
     {
-        INSTANCE.send(message, PacketDistributor.TRACKING_ENTITY.with(trackedEntity));
+        NetworkPackets.sendToAllTrackingEntity(INSTANCE, message, trackedEntity);
     }
 
     /**
@@ -150,6 +151,6 @@ public class UMPackets {
      */
     public static <MSG> void sendToAllTrackingEntityAndSelf(MSG message, Entity trackedEntity)
     {
-        INSTANCE.send(message, PacketDistributor.TRACKING_ENTITY_AND_SELF.with(trackedEntity));
+        NetworkPackets.sendToAllTrackingEntityAndSelf(INSTANCE, message, trackedEntity);
     }
 }

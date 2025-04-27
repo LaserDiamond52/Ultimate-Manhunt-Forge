@@ -3,8 +3,8 @@ package net.laserdiamond.ultimatemanhunt.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.laserdiamond.laserutils.util.registry.LanguageRegistry;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
-import net.laserdiamond.ultimatemanhunt.client.hunter.ClientHunter;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.ChangeTrackingSpeedRunnerC2SPacket;
 import net.minecraft.client.KeyMapping;
@@ -65,16 +65,19 @@ public class UMKeyBindings {
             {
                 return; // Game has not been started. End method
             }
-            if (ClientHunter.isHunter()) // Player can only cycle through players to track if they are a hunter
+            localPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
-                if (INSTANCE.cycleRight.consumeClick())
+                if (umPlayer.isHunter()) // Player can only cycle through players to track if they are a hunter
                 {
-                    UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.NEXT));
-                } else if (INSTANCE.cycleLeft.consumeClick())
-                {
-                    UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.PREVIOUS));
+                    if (INSTANCE.cycleRight.consumeClick())
+                    {
+                        UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.NEXT));
+                    } else if (INSTANCE.cycleLeft.consumeClick())
+                    {
+                        UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.PREVIOUS));
+                    }
                 }
-            }
+            });
         }
     }
 

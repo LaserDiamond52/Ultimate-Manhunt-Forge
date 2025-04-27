@@ -1,12 +1,16 @@
-package net.laserdiamond.ultimatemanhunt.network.packet;
+package net.laserdiamond.ultimatemanhunt.network.packet.game.announce;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 public abstract class AnnounceS2CPacket extends NetworkPacket {
 
+    public AnnounceS2CPacket() {}
+
+    public AnnounceS2CPacket(FriendlyByteBuf buf) {}
 
     @Override
     public void packetWork(CustomPayloadEvent.Context context)

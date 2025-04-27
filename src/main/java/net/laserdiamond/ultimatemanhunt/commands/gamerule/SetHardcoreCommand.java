@@ -5,16 +5,14 @@ import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
 /**
- * Command used to determine if the Reverse Manhunt game should be hardcore
- * <p>When a Reverse Manhunt game is set to hardcore, any death removes a life from players that are speed runners</p>
+ * Command used to determine if the Manhunt game should be hardcore
+ * <p>When a Manhunt game is set to hardcore, any death removes a life from players that are speed runners</p>
  */
 public class SetHardcoreCommand {
 
@@ -54,7 +52,6 @@ public class SetHardcoreCommand {
             return 0;
         }
         UMGame.setHardcore(isHardcore);
-        UMPackets.sendToAllClients(new HardcoreUpdateS2CPacket(isHardcore));
         logHardcoreUpdate(commandContext.getSource(), isHardcore);
         return i;
     }

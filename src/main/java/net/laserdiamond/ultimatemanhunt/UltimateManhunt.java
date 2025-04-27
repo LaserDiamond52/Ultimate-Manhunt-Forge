@@ -1,9 +1,13 @@
 package net.laserdiamond.ultimatemanhunt;
 
 import com.mojang.logging.LogUtils;
+import net.laserdiamond.laserutils.client.overlay.LUOverlayManager;
+import net.laserdiamond.ultimatemanhunt.client.hud.*;
 import net.laserdiamond.ultimatemanhunt.datagen.UMDataGenerator;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -25,7 +29,7 @@ public class UltimateManhunt {
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static ResourceLocation fromRMPath(String path)
+    public static ResourceLocation fromUMPath(String path)
     {
         return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
@@ -41,6 +45,14 @@ public class UltimateManhunt {
         new UMDataGenerator(eventBus);
         UMItems.register(eventBus);
         UMSoundEvents.registerSounds(eventBus);
+        LUOverlayManager.createOverlayManager(eventBus)
+                .registerConditionalOverlayFirst(new LayeredDraw()
+                        .add(new SpeedRunnerLivesOverlay())
+                        .add(new UpperScreenTextOverlay())
+                        .add(new HunterTrackerOverlay()),
+                        () -> !Minecraft.getInstance().options.hideGui)
+                .registerOverlayFirst(new SpeedRunnerHunterDetectionOverlay())
+                .registerOverlayFirst(new SpeedRunnerGracePeriodOverlay());
     }
 
     public static Level getLevel(Player player)
