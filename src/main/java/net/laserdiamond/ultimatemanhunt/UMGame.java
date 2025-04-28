@@ -368,7 +368,12 @@ public class UMGame {
                     {
                         if (UMPlayer.isSpeedRunnerOnGracePeriodServer(player))
                         {
-                            continue; // Speed runner is on grace period. Do not continue
+                            continue; // Speed runner is on grace period. Go to next iteration
+                        }
+                        if (!player.isAlive()) // Is the hunter dead?
+                        {
+                            UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(0), speedRunnerPlayer); // Hunter is dead
+                            continue; // Skip to next iteration. Shouldn't notify player if hunter is dead
                         }
                         float distance = player.distanceTo(speedRunnerPlayer);
                         UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
@@ -392,7 +397,6 @@ public class UMGame {
                         {
                             UMSoundEvents.stopDetectionSound(speedRunnerPlayer);
                         }
-
                     }
 
                     UUID trackedPlayerUUID = umPlayer.getTrackingPlayerUUID(); // UUID of player to track

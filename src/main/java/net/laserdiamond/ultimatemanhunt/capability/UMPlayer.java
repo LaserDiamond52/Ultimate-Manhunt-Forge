@@ -209,6 +209,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         {
             player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
+                forAll.accept(player, umPlayer);
                 if (umPlayer.isSpeedRunner())
                 {
                     forSpeedRunners.accept(player, umPlayer);
@@ -222,7 +223,6 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
                 {
                     forSpectators.accept(player, umPlayer);
                 }
-                forAll.accept(player, umPlayer);
             });
         }
     }

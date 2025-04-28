@@ -10,6 +10,9 @@ import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetBuffedHunterOnFinal
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetFriendlyFireCommand;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetHardcoreCommand;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetWindTorchesCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetDeadPlayerRoleCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetNewPlayerRoleCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetPlayerRoleCommands;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.item.WindTorchItem;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
@@ -22,11 +25,13 @@ import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMa
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -43,7 +48,6 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event)
     {
-//        ManageHuntersCommand.register(event.getDispatcher());
         SetPlayerRoleCommands.register(event.getDispatcher());
         UltimateManhuntGameCommands.register(event.getDispatcher());
         SetFriendlyFireCommand.register(event.getDispatcher());
@@ -55,6 +59,9 @@ public class ForgeEvents {
         SetWindTorchesCommand.register(event.getDispatcher());
         SetBuffedHunterOnFinalDeathCommand.register(event.getDispatcher());
         UMGameProfileCommand.register(event.getDispatcher());
+
+        SetNewPlayerRoleCommand.register(event.getDispatcher());
+        SetDeadPlayerRoleCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -227,7 +234,6 @@ public class ForgeEvents {
         UMPackets.sendToPlayer(new HunterGracePeriodDurationS2CPacket(UMGame.getHunterGracePeriod()), player); // Let the player know the hunter grace period
         UMPackets.sendToPlayer(new SpeedRunnerGracePeriodDurationS2CPacket(UMGame.getSpeedRunnerGracePeriod()), player); // Let the player know the speed runner grace period
         UMPackets.sendToPlayer(new SpeedRunnerMaxLifeChangeS2CPacket(UMPlayer.getMaxLives()), player); // Let the player know how many lives speed runners can have
-        UMPackets.sendToPlayer(new RemainingPlayerCountS2CPacket(), player); // Let the player know how many remaining players on each team
         // Game Time packets and updates are sent every tick. It is redundant to send them at this moment
 
         if (!UMGame.isWindTorchEnabled())
@@ -242,6 +248,8 @@ public class ForgeEvents {
                 // Not already part of this iteration
                 player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
                 {
+                    player.sendSystemMessage(Component.literal("You joined a Manhunt game that is already in progress and have been declared as a " + UMGame.getNewPlayerRole().getAsName()));
+                    player.getInventory().clearContent(); // Clear items
                     switch (UMGame.getNewPlayerRole())
                     {
                         case SPECTATOR ->
@@ -250,6 +258,10 @@ public class ForgeEvents {
                         }
                         case SPEED_RUNNER ->
                         {
+                            if (player instanceof ServerPlayer serverPlayer)
+                            {
+                                serverPlayer.setGameMode(GameType.DEFAULT_MODE);
+                            }
                             umPlayer.resetToSpeedRunner(player, true);
                             if (UMGame.isWindTorchEnabled()) // Is the Wind Torch enabled?
                             {
@@ -258,6 +270,10 @@ public class ForgeEvents {
                         }
                         case HUNTER ->
                         {
+                            if (player instanceof ServerPlayer serverPlayer)
+                            {
+                                serverPlayer.setGameMode(GameType.DEFAULT_MODE);
+                            }
                             umPlayer.resetToHunter(player, true);
                         }
                         default -> umPlayer.resetToSpectator(player, true);
@@ -281,6 +297,7 @@ public class ForgeEvents {
                     }
                 }
             });
+            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let players know how many remaining players on each team
         }
     }
 
@@ -332,9 +349,6 @@ public class ForgeEvents {
             {
                 umPlayer.sendUpdateFromServer(playerTarget, player);
             });
-
-            // TODO: When capability data changes, you need to send the new data to ALL tracking players and the player themselves.
-            // May need to find where S2C packets are sent for the client values
         }
     }
 

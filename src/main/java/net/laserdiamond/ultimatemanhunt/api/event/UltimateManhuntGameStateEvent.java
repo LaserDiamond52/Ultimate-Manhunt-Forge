@@ -136,6 +136,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             player.setHealth(player.getMaxHealth());
             player.tickCount = 0; // Reset tick counts
             player.getFoodData().eat(200, 1.0F); // Reset food level
+            player.getInventory().clearContent(); // Clear items
             if (player.isSpectator())
             {
                 umPlayer.setRole(UMGame.PlayerRole.SPECTATOR); // If the player is in spectator mode, set them to be a spectator
@@ -154,7 +155,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide) // Are we on the server?
             {
-                player.getInventory().clearContent(); // Clear items
                 if (UMGame.isWindTorchEnabled()) // Check if Wind Torches are enabled
                 {
                     player.setItemSlot(EquipmentSlot.MAINHAND, UMItems.WIND_TORCH.get().getDefaultInstance()); // Give wind torch
@@ -172,8 +172,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             if (!player.level().isClientSide)
             {
                 // Log the player for this iteration of the game
-                player.getInventory().clearContent(); // Clear items
-
                 umPlayer.resetToHunter(player, true);
                 player.getAbilities().mayfly = true;
                 player.getAbilities().flying = true;
@@ -332,6 +330,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             super();
             UMPackets.sendToAllClients(new GameResumedS2CPacket());
             UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(0));
+            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
         }
 
         @Override

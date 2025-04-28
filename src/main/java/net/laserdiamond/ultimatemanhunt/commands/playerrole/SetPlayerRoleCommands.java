@@ -1,4 +1,4 @@
-package net.laserdiamond.ultimatemanhunt.commands;
+package net.laserdiamond.ultimatemanhunt.commands.playerrole;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
