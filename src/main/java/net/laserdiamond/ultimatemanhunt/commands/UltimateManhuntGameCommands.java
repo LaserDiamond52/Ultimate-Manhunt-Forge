@@ -1,12 +1,13 @@
 package net.laserdiamond.ultimatemanhunt.commands;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunter;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunner;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.util.file.UMGameSettingProfileConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -19,20 +20,22 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 import java.util.List;
 
 /**
- * Command for starting, stopping, pausing, and resuming the Reverse Manhunt Game
+ * Command for starting, stopping, pausing, and resuming the Manhunt Game
  */
 public class UltimateManhuntGameCommands {
-
-    private static final int PERMISSION_LEVEL = 2;
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("ultimate_manhunt")
-                        .requires(commandSourceStack -> ForgeServerEvents.permission(commandSourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.literal("start")
                                         .executes(commandContext -> changeGameState(commandContext, UMGame.State.STARTED))
+                                        .then(
+                                                Commands.argument("game_profile_name", StringArgumentType.string())
+                                                        .executes(commandContext -> startGameFromProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
+                                        )
                         )
                         .then(
                                 Commands.literal("pause")
@@ -84,8 +87,8 @@ public class UltimateManhuntGameCommands {
     {
         int i = 0;
 
-        List<Player> hunters = PlayerHunter.getHunters();
-        List<Player> speedRunners = PlayerSpeedRunner.getRemainingSpeedRunners();
+        List<Player> hunters = UMPlayer.getHunters(false);
+        List<Player> speedRunners = UMPlayer.getRemainingSpeedRunners();
 //        switch (newGameState)
 //        {
 //            case STARTED, IN_PROGRESS ->
@@ -102,29 +105,36 @@ public class UltimateManhuntGameCommands {
         {
             switch (newGameState)
             {
-                case STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start(
-                        hunters,
-                        speedRunners
-                ));
-                case IN_PROGRESS -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Resume(
-                        hunters,
-                        speedRunners
-                ));
-                case PAUSED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Pause(
-                        hunters,
-                        speedRunners
-                ));
-                case NOT_STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(
-                        UltimateManhuntGameStateEvent.End.Reason.COMMAND,
-                        hunters,
-                        speedRunners
-                ));
+                case STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start());
+                case IN_PROGRESS -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Resume());
+                case PAUSED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Pause());
+                case NOT_STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.COMMAND));
             }
             logGameStateChange(commandContext.getSource(), newGameState, true);
             i++;
         } else
         {
             logGameStateChange(commandContext.getSource(), newGameState, false);
+        }
+
+        return i;
+    }
+
+    private static int startGameFromProfile(CommandContext<CommandSourceStack> commandContext, String profileName)
+    {
+        int i = 0;
+
+        if (!UMGameSettingProfileConfig.doesGameProfileFileExist(profileName))
+        {
+            commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot start game from Game Profile \"" + profileName + "\" because it does not exist"));
+            return i;
+        }
+        new UMGameSettingProfileConfig(profileName).applySettingsToGame();
+        if (UMGame.setCurrentGameState(UMGame.State.STARTED))
+        {
+            MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start());
+            logGameStateChange(commandContext.getSource(), UMGame.State.STARTED, true);
+            i++;
         }
 
         return i;

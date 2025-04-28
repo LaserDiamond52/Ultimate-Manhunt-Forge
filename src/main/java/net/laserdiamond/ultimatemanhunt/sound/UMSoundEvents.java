@@ -28,7 +28,7 @@ public class UMSoundEvents {
 
     private static RegistryObject<SoundEvent> registerSound(String name)
     {
-        return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(UltimateManhunt.fromRMPath(name)));
+        return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(UltimateManhunt.fromUMPath(name)));
     }
 
     public static void registerSounds(IEventBus eventBus)

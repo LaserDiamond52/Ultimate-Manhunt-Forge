@@ -8,16 +8,16 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 /**
  * Packet send from the SERVER to the CLIENT that tells speed runners how close they are to the hunter when within the hunter detection range.
  */
-public class CloseDistanceFromHunterS2CPacket extends NetworkPacket {
+public class SpeedRunnerDistanceFromHunterS2CPacket extends NetworkPacket {
 
     private final float distance;
 
-    public CloseDistanceFromHunterS2CPacket(float distance)
+    public SpeedRunnerDistanceFromHunterS2CPacket(float distance)
     {
         this.distance = distance;
     }
 
-    public CloseDistanceFromHunterS2CPacket(FriendlyByteBuf buf)
+    public SpeedRunnerDistanceFromHunterS2CPacket(FriendlyByteBuf buf)
     {
         this.distance = buf.readFloat();
     }

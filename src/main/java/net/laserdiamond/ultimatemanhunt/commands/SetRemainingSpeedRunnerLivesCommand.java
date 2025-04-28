@@ -4,12 +4,9 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunner;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerCapabilitySyncS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerChangeS2CPacket;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -25,33 +22,31 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SetRemainingSpeedRunnerLivesCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("speed_runners_lives")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.argument("target", EntityArgument.players())
                                         .then(
                                                 Commands.literal("add")
                                                         .then(
-                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, PlayerSpeedRunner.getMaxLives()))
+                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, UMPlayer.getMaxLives()))
                                                                         .executes(commandContext -> modifySpeedRunnerLives(commandContext, EntityArgument.getPlayers(commandContext, "target"), Modifier.ADD, IntegerArgumentType.getInteger(commandContext, "newLives")))
                                                         )
                                         )
                                         .then(
                                                 Commands.literal("set")
                                                         .then(
-                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, PlayerSpeedRunner.getMaxLives()))
+                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, UMPlayer.getMaxLives()))
                                                                         .executes(commandContext -> modifySpeedRunnerLives(commandContext, EntityArgument.getPlayers(commandContext, "target"), Modifier.SET, IntegerArgumentType.getInteger(commandContext, "newLives")))
                                                         )
                                         )
                                         .then(
                                                 Commands.literal("remove")
                                                         .then(
-                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, PlayerSpeedRunner.getMaxLives()))
+                                                                Commands.argument("newLives", IntegerArgumentType.integer(1, UMPlayer.getMaxLives()))
                                                                         .executes(commandContext -> modifySpeedRunnerLives(commandContext, EntityArgument.getPlayers(commandContext, "target"), Modifier.REMOVE, IntegerArgumentType.getInteger(commandContext, "newLives")))
                                                         )
                                         )
@@ -79,30 +74,52 @@ public class SetRemainingSpeedRunnerLivesCommand {
         }
         for (ServerPlayer serverPlayer : players)
         {
-            serverPlayer.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+            serverPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
                 switch (modifier)
                 {
                     case ADD ->
                     {
-                        int newLives = Math.min(playerSpeedRunner.getLives() + lives, PlayerSpeedRunner.getMaxLives()); // Do not allow players to have more than the max amount of lives
-                        playerSpeedRunner.setLives(newLives);
+                        umPlayer.setLives(umPlayer.getLives() + lives);
                     }
                     case SET ->
                     {
-                        playerSpeedRunner.setLives(lives);
+                        umPlayer.setLives(lives);
                     }
                     case REMOVE ->
                     {
-                        int newLives = Math.max(1, playerSpeedRunner.getLives() - lives); // Do not allow players to have 0 lives
-                        playerSpeedRunner.setLives(newLives);
+                        int newLives = Math.max(1, umPlayer.getLives() - lives); // Do not allow players to have 0 lives
+                        umPlayer.setLives(newLives);
                     }
                 }
-                UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), serverPlayer);
-                UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(serverPlayer.getId(), playerSpeedRunner.toNBT()), serverPlayer);
-                logLifeChange(commandContext.getSource(), serverPlayer, playerSpeedRunner.getLives());
+                umPlayer.sendUpdateFromServerToSelf(serverPlayer);
+                logLifeChange(commandContext.getSource(), serverPlayer, umPlayer.getLives());
                 i.getAndIncrement();
             });
+//            serverPlayer.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+//            {
+//                switch (modifier)
+//                {
+//                    case ADD ->
+//                    {
+//                        int newLives = Math.min(playerSpeedRunner.getLives() + lives, PlayerSpeedRunner.getMaxLives()); // Do not allow players to have more than the max amount of lives
+//                        playerSpeedRunner.setLives(newLives);
+//                    }
+//                    case SET ->
+//                    {
+//                        playerSpeedRunner.setLives(lives);
+//                    }
+//                    case REMOVE ->
+//                    {
+//                        int newLives = Math.max(1, playerSpeedRunner.getLives() - lives); // Do not allow players to have 0 lives
+//                        playerSpeedRunner.setLives(newLives);
+//                    }
+//                }
+//                UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), serverPlayer);
+//                UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(serverPlayer, playerSpeedRunner), serverPlayer);
+//                logLifeChange(commandContext.getSource(), serverPlayer, playerSpeedRunner.getLives());
+//                i.getAndIncrement();
+//            });
         }
         return i.get();
     }

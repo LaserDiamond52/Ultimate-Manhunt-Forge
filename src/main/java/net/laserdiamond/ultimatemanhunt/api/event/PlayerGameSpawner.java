@@ -1,10 +1,10 @@
 package net.laserdiamond.ultimatemanhunt.api.event;
 
+import com.google.common.base.Predicates;
 import net.laserdiamond.laserutils.util.raycast.ServerRayCast;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -37,7 +37,7 @@ public interface PlayerGameSpawner {
             int yMin = overworld.getMinBuildHeight();
             Set<RelativeMovement> relativeMovements = EnumSet.noneOf(RelativeMovement.class);
             // Ray cast to find spawn position to start the game
-            ServerRayCast<Player, Double, Double> src = ServerRayCast.create(overworld, new Vec3(xSpawn, yMax, zSpawn), Entity::isAttackable, Player.class, List.of());
+            ServerRayCast<Player, Double, Double> src = ServerRayCast.create(overworld, new Vec3(xSpawn, yMax, zSpawn), Predicates.alwaysFalse(), Player.class, List.of());
             src.setCanPierceEntities() // Go through entities
                     .setStepIncrement(1)
                     .fireAtVec3D(new Vec3(xSpawn, yMin, zSpawn), 0); // Fire straight down

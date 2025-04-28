@@ -1,6 +1,6 @@
 package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
 
-import net.laserdiamond.ultimatemanhunt.network.packet.AnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.AnnounceS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;

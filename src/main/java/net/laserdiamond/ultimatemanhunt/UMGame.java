@@ -1,25 +1,26 @@
 package net.laserdiamond.ultimatemanhunt;
 
-import net.laserdiamond.ultimatemanhunt.capability.game.PlayerGameTimeCapability;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunter;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunterCapability;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunner;
 import net.laserdiamond.ultimatemanhunt.api.event.HuntersReleasedEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntGameCommands;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.GameTimeCapabilitySyncS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.GameTimeS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.TrackingSpeedRunnerS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.CloseDistanceFromHunterS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.LazyOptional;
@@ -30,7 +31,6 @@ import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Mod.EventBusSubscriber(modid = UltimateManhunt.MODID)
 public class UMGame {
@@ -41,7 +41,7 @@ public class UMGame {
     public static final int HUNTER_DETECTION_RANGE = 50;
 
     /**
-     * The current {@linkplain State state} of the Reverse Manhunt game on the SERVER
+     * The current {@linkplain State state} of the Manhunt game on the SERVER
      */
     private static State currentGameState = State.NOT_STARTED;
 
@@ -56,12 +56,12 @@ public class UMGame {
     private static int speedRunnerGracePeriodTicks = 600; // 30 seconds
 
     /**
-     * The x spawn coordinate of the Reverse Manhunt
+     * The x spawn coordinate of the Manhunt
      */
     private static int xSpawnCoordinate = 0;
 
     /**
-     * The z spawn coordinate of hte Reverse Manhunt
+     * The z spawn coordinate of the Manhunt
      */
     private static int zSpawnCoordinate = 0;
 
@@ -81,12 +81,22 @@ public class UMGame {
     private static boolean windTorchEnabled = true; // Determines if the Wind Torch is enabled
 
     /**
+     * The role the {@linkplain Player player} will be assigned when first joining the game
+     */
+    private static PlayerRole newPlayerRole = PlayerRole.SPECTATOR;
+
+    /**
+     * The role the {@linkplain Player player} will be assigned after losing all their lives as a speed runner
+     */
+    private static PlayerRole deadSpeedRunnerRole = PlayerRole.HUNTER;
+
+    /**
      * A {@link Set} of player UUIDs for the people currently in an iteration of the game
      */
     private static final Set<UUID> LOGGED_PLAYER_UUIDS = new HashSet<>();
 
     /**
-     * @return The current {@linkplain State game state} of the Reverse Manhunt game
+     * @return The current {@linkplain State game state} of the Manhunt game
      */
     public static State getCurrentGameState()
     {
@@ -96,15 +106,16 @@ public class UMGame {
     private static long currentGameTime = 0;
 
     /**
-     * Resets the current game time for the Reverse Manhunt
+     * Resets the current game time for the Manhunt
      */
     public static void resetGameTime()
     {
         currentGameTime = 0;
+        UMPackets.sendToAllClients(new GameTimeS2CPacket(0));
     }
 
     /**
-     * @return The current game time of the Reverse Manhunt
+     * @return The current game time of the Manhunt
      */
     public static long getCurrentGameTime()
     {
@@ -155,32 +166,6 @@ public class UMGame {
     }
 
     /**
-     * Checks if the {@linkplain Player player} is a speed runner
-     * @param player The {@linkplain Player player} to check
-     * @return True if the {@linkplain Player player} is on grace period
-     */
-    public static boolean isSpeedRunnerOnGracePeriod(Player player)
-    {
-        AtomicBoolean ret = new AtomicBoolean(false);
-        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-        {
-            if (playerHunter.isHunter()) // Is the player a hunter?
-            {
-                return; // Player is a hunter. Do not continue here
-            }
-            player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-            {
-                if (!playerSpeedRunner.getWasLastKilledByHunter())
-                {
-                    return; // Player wasn't last killed by a hunter
-                }
-                ret.set(currentGameTime < playerSpeedRunner.getGracePeriodTimeStamp()); // Player is on speed runner grace period if the current game time is less than the time stamp of their grace period
-            });
-        });
-        return ret.get();
-    }
-
-    /**
      * Sets the grace period for hunters at the start of the game
      * @param durationTicks The duration in ticks of the grace period.
      *                      If the value is 0 or less, the grace period duration will not change.
@@ -192,6 +177,7 @@ public class UMGame {
             return;
         }
         UMGame.hunterGracePeriodTicks = durationTicks;
+        UMPackets.sendToAllClients(new HunterGracePeriodDurationS2CPacket(durationTicks));
     }
 
     /**
@@ -215,6 +201,7 @@ public class UMGame {
             return;
         }
         UMGame.speedRunnerGracePeriodTicks = durationTicks;
+        UMPackets.sendToAllClients(new SpeedRunnerGracePeriodDurationS2CPacket(durationTicks));
     }
 
     /**
@@ -252,6 +239,7 @@ public class UMGame {
     public static void setHardcore(boolean hardcore)
     {
         UMGame.hardcore = hardcore;
+        UMPackets.sendToAllClients(new HardcoreUpdateS2CPacket(hardcore));
     }
 
     /**
@@ -298,6 +286,31 @@ public class UMGame {
         return windTorchEnabled;
     }
 
+    public static void setNewPlayerRole(@NotNull PlayerRole playerRole)
+    {
+        newPlayerRole = playerRole;
+    }
+
+    public static PlayerRole getNewPlayerRole()
+    {
+        return newPlayerRole;
+    }
+
+    public static boolean setDeadSpeedRunnerRole(@NotNull PlayerRole playerRole)
+    {
+        if (playerRole == PlayerRole.SPEED_RUNNER)
+        {
+            return false; // Cannot set dead speed runner players to be speed runners again
+        }
+        deadSpeedRunnerRole = playerRole;
+        return true;
+    }
+
+    public static PlayerRole getDeadSpeedRunnerRole()
+    {
+        return deadSpeedRunnerRole;
+    }
+
     @SubscribeEvent
     public static void onServerTickPre(TickEvent.ServerTickEvent.Pre event)
     {
@@ -305,14 +318,6 @@ public class UMGame {
         {
             currentGameTime++; // Increment the current game time for as long as the game is running
             UMPackets.sendToAllClients(new GameTimeS2CPacket(currentGameTime)); // Send current time to all client
-            for (Player player : event.getServer().getPlayerList().getPlayers())
-            {
-                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-                {
-                    playerGameTime.setGameTime(currentGameTime);
-                    UMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player);
-                });
-            }
         }
     }
 
@@ -334,20 +339,19 @@ public class UMGame {
 
         if (currentGameTime == hunterGracePeriodTicks) // Has the grace period just ended?
         {
-            MinecraftForge.EVENT_BUS.post(new HuntersReleasedEvent(PlayerHunter.getHunters(), PlayerSpeedRunner.getRemainingSpeedRunners())); // Post release event
+            MinecraftForge.EVENT_BUS.post(new HuntersReleasedEvent()); // Post release event
         }
 
-        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+        player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
-            if (playerHunter.isHunter()) // Is the player a hunter?
+            if (umPlayer.isHunter())
             {
-                if (State.isGameRunning()) // Is a game in progress?
+                if (State.isGameRunning())
                 {
                     player.getFoodData().eat(200, 1.0F);
 
-                    if (playerHunter.isBuffed())
+                    if (umPlayer.isBuffedHunter())
                     {
-//                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes());
                         if (player.tickCount % 200 == 0)
                         {
                             player.setHealth(player.getHealth() + 2);
@@ -356,44 +360,46 @@ public class UMGame {
                     }
                     if (currentGameTime < hunterGracePeriodTicks)
                     {
-                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
                         player.teleportTo(xSpawnCoordinate, 1000, zSpawnCoordinate); // Hunters should be teleported to an unreachable place
-                        return; // End method here. Don't start tracking until hunters have been released
+                        return;
                     }
                     // Track chosen player
-                    for (Player speedRunnerPlayer : PlayerHunter.getAvailableSpeedRunners(player)) // Let speed runners know how close they are to a hunter
+                    for (Player speedRunnerPlayer : UMPlayer.getAvailableSpeedRunners(player))
                     {
-                        if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(speedRunnerPlayer))
+                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(player))
                         {
-                            continue; // Speed runner is on grace period. Do not continue
+                            continue; // Speed runner is on grace period. Go to next iteration
+                        }
+                        if (!player.isAlive()) // Is the hunter dead?
+                        {
+                            UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(0), speedRunnerPlayer); // Hunter is dead
+                            continue; // Skip to next iteration. Shouldn't notify player if hunter is dead
                         }
                         float distance = player.distanceTo(speedRunnerPlayer);
-                        UMPackets.sendToPlayer(new CloseDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
+                        UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
 
-                        if (currentGameTime > hunterGracePeriodTicks) // Is hunter out of grace period?
+                        if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
                         {
-                            if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
+                            if (speedRunnerPlayer instanceof ServerPlayer nearServerPlayer)
                             {
-                                if (speedRunnerPlayer instanceof ServerPlayer nearServerPlayer)
+                                if (speedRunnerPlayer.isAlive()) // Is the player alive?
                                 {
-                                    if (speedRunnerPlayer.isAlive()) // Is the player alive?
+                                    int rate = (int) ((distance / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
+                                    if (speedRunnerPlayer.tickCount % rate == 0) // ~180 bpm
                                     {
-                                        int rate = (int) ((distance / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
-                                        if (speedRunnerPlayer.tickCount % rate == 0) // ~180 bpm
-                                        {
-                                            nearServerPlayer.connection.send(new ClientboundSoundPacket(UMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
-                                        }
-                                        UMSoundEvents.playDetectionSound(speedRunnerPlayer); // Play detection sound
+                                        nearServerPlayer.connection.send(new ClientboundSoundPacket(UMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
                                     }
+                                    UMSoundEvents.playDetectionSound(speedRunnerPlayer); // Play detection sound
                                 }
-
-                            } else // Not close enough to notify hunter
-                            {
-                                UMSoundEvents.stopDetectionSound(speedRunnerPlayer);
                             }
+
+                        } else // Not close enough to notify hunter
+                        {
+                            UMSoundEvents.stopDetectionSound(speedRunnerPlayer);
                         }
                     }
-                    UUID trackedPlayerUUID = playerHunter.getTrackingPlayerUUID(); // UUID of player to track
+
+                    UUID trackedPlayerUUID = umPlayer.getTrackingPlayerUUID(); // UUID of player to track
                     if (trackedPlayerUUID == player.getUUID())
                     {
                         UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
@@ -418,7 +424,7 @@ public class UMGame {
                             UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player and Hunter are not in the same dimension
                             return;
                         }
-                        if (PlayerSpeedRunner.isSpeedRunnerOnGracePeriod(trackedPlayer)) // Is the speed runner on grace period?
+                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(trackedPlayer)) // Is the speed runner on grace period?
                         {
                             UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is on grace period
                             return;
@@ -428,11 +434,11 @@ public class UMGame {
                             UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is dead
                             return;
                         }
-                        LazyOptional<PlayerHunter> trackedPlayerHunterCap = trackedPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER); // Get hunter capability of tracked player
-                        if (trackedPlayerHunterCap.isPresent()) // Is the capability present?
+                        LazyOptional<UMPlayer> trackedPlayerCap = trackedPlayer.getCapability(UMPlayerCapability.UM_PLAYER); // Get hunter capability of tracked player
+                        if (trackedPlayerCap.isPresent()) // Is the capability present?
                         {
-                            PlayerHunter trackedPlayerHunter = trackedPlayerHunterCap.orElse(new PlayerHunter(trackedPlayerUUID));
-                            if (trackedPlayerHunter.isHunter()) // Is the tracked player a hunter (Player can become a hunter while being tracked)
+                            UMPlayer trackedPlayerHunter = trackedPlayerCap.orElse(new UMPlayer(trackedPlayerUUID));
+                            if (!trackedPlayerHunter.isSpeedRunner()) // Is the tracked player NOT a speed runner (roles can change)
                             {
                                 UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Player is a hunter. Do not track
                                 return;
@@ -501,6 +507,12 @@ public class UMGame {
 //                        }
 //                    }
                 }
+            } else if (umPlayer.isSpectator())
+            {
+                if (player instanceof ServerPlayer serverPlayer)
+                {
+                    serverPlayer.setGameMode(GameType.SPECTATOR);
+                }
             }
         });
     }
@@ -511,7 +523,7 @@ public class UMGame {
     }
 
     /**
-     * Sets the {@linkplain State game state} of the Reverse Manhunt game
+     * Sets the {@linkplain State game state} of the Manhunt game
      * @param newGameState The new {@linkplain State state} to set the game into.
      * @return True if the {@linkplain State game state} was successfully changed.
      * Returns false if the current state is {@linkplain State#NOT_STARTED Not Started} and the new state to set is {@linkplain State#PAUSED Paused},
@@ -536,34 +548,35 @@ public class UMGame {
             return false;
         }
         currentGameState = newGameState;
+        UMPackets.sendToAllClients(new GameStateS2CPacket(currentGameState));
         return true;
     }
 
     /**
-     * All possible game states for the Reverse Manhunt
+     * All possible game states for the Manhunt
      */
     public enum State
     {
         /**
-         * A Reverse Manhunt game has started. This state is reached when the Reverse Manhunt game has been started using the {@linkplain UltimateManhuntGameCommands Reverse Manhunt Game Command}
+         * A Manhunt game has started. This state is reached when the Manhunt game has been started using the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}
          */
         STARTED,
 
         /**
-         * A Reverse Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after resuming the game using the {@linkplain UltimateManhuntGameCommands Reverse Manhunt Game Command}
+         * A Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after resuming the game using the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}
          */
         IN_PROGRESS,
 
         /**
-         * A Reverse Manhunt game is on pause.
-         * This state is reached if the game is put on pause by the use of the {@linkplain UltimateManhuntGameCommands Reverse Manhunt Game Command}.
-         * <p>While the Reverse Manhunt game is in this state, Speed Runners cannot lose lives, the Ender Dragon cannot be damaged, and Hunters cannot track speed runners</p>
+         * A Manhunt game is on pause.
+         * This state is reached if the game is put on pause by the use of the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}.
+         * <p>While the Manhunt game is in this state, Speed Runners cannot lose lives, the Ender Dragon cannot be damaged, and Hunters cannot track speed runners</p>
          */
         PAUSED,
 
         /**
-         * A Reverse Manhunt game is not currently in progress yet, or has not been started.
-         * This state is reached either through the use of the {@linkplain UltimateManhuntGameCommands Reverse Manhunt Game Command},
+         * A Manhunt game is not currently in progress yet, or has not been started.
+         * This state is reached either through the use of the {@linkplain UltimateManhuntGameCommands Manhunt Game Command},
          * or if the {@linkplain UltimateManhuntGameStateEvent.End End Game Event} is fired
          */
         NOT_STARTED;
@@ -585,7 +598,7 @@ public class UMGame {
         }
 
         /**
-         * @return True if the Reverse Manhunt Game has been started
+         * @return True if the Manhunt Game has been started
          */
         public static boolean hasGameBeenStarted()
         {
@@ -602,6 +615,66 @@ public class UMGame {
                 }
             }
             return null;
+        }
+    }
+
+    /**
+     * Represents a role a {@linkplain Player player} can fulfill in the Manhunt game
+     */
+    public enum PlayerRole
+    {
+        /**
+         * A {@linkplain Player player} that spectates the game. Spectators have no direct impact on the outcome of the game
+         */
+        SPECTATOR,
+
+        /**
+         * A {@linkplain Player player} that is attempting to beat the Ender Dragon before losing all their lives
+         */
+        SPEED_RUNNER,
+
+        /**
+         * A {@linkplain Player player} that is attempting to defeat all the Speed Runners
+         */
+        HUNTER;
+
+        public static PlayerRole fromString(String value)
+        {
+            for (PlayerRole playerRole : PlayerRole.values())
+            {
+                if (value.equals(playerRole.toString()))
+                {
+                    return playerRole;
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
+
+        public String getAsName()
+        {
+            String ret = this.toString().substring(0,1).toUpperCase() + this.toString().substring(1);
+            ret = ret.replace("_", " ");
+            boolean foundSpace = false;
+            for (int i = 0; i < ret.length(); i++)
+            {
+                String s = ret.substring(i, Math.min(i + 1, ret.length()));
+                if (s.equals(" "))
+                {
+                    foundSpace = true;
+                    continue;
+                }
+                if (foundSpace)
+                {
+                    ret = ret.replace(" " + s, " " + s.toUpperCase());
+                    foundSpace = false;
+                }
+            }
+            return ret;
         }
     }
 

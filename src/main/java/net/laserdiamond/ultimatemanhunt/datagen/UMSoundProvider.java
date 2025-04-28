@@ -25,7 +25,7 @@ public class UMSoundProvider extends SoundDefinitionsProvider {
             String name = this.soundName(soundEventRegistryObject);
             this.add(soundEvent, SoundDefinition.definition()
                     .subtitle(subtitle)
-                    .with(sound(UltimateManhunt.fromRMPath(name))));
+                    .with(sound(UltimateManhunt.fromUMPath(name))));
         }
     }
 

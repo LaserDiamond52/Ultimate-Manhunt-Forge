@@ -2,41 +2,36 @@ package net.laserdiamond.ultimatemanhunt.event;
 
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
-import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerLifeLossEvent;
-import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerToHunterEvent;
-import net.laserdiamond.ultimatemanhunt.capability.game.PlayerGameTimeCapability;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunter;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunterCapability;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunner;
-import net.laserdiamond.ultimatemanhunt.capability.speedrunner.PlayerSpeedRunnerCapability;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.*;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetBuffedHunterOnFinalDeathCommand;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetFriendlyFireCommand;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetHardcoreCommand;
 import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetWindTorchesCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetDeadPlayerRoleCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetNewPlayerRoleCommand;
+import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetPlayerRoleCommands;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.item.WindTorchItem;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.GameTimeCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterCapabilitySyncS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterChangeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerChangeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -53,7 +48,7 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event)
     {
-        ManageHuntersCommand.register(event.getDispatcher());
+        SetPlayerRoleCommands.register(event.getDispatcher());
         UltimateManhuntGameCommands.register(event.getDispatcher());
         SetFriendlyFireCommand.register(event.getDispatcher());
         SetHardcoreCommand.register(event.getDispatcher());
@@ -63,6 +58,10 @@ public class ForgeEvents {
         SetUMSpawnCommand.register(event.getDispatcher());
         SetWindTorchesCommand.register(event.getDispatcher());
         SetBuffedHunterOnFinalDeathCommand.register(event.getDispatcher());
+        UMGameProfileCommand.register(event.getDispatcher());
+
+        SetNewPlayerRoleCommand.register(event.getDispatcher());
+        SetDeadPlayerRoleCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -85,87 +84,38 @@ public class ForgeEvents {
                 return; // ensure we are on the server
             }
             Entity sourceEntity = event.getSource().getEntity();
-            deadPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(deadHunter ->
+            deadPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(deadUMPlayer ->
             {
-                if (!deadHunter.isHunter()) // Was the dead player NOT a hunter?
+                if (deadUMPlayer.isSpeedRunner())
                 {
-                    deadPlayer.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(deadSpeedRunner ->
+                    if (UMGame.isHardcore())
                     {
-                        deadSpeedRunner.setWasLastKilledByHunter(false);
-                        UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(deadSpeedRunner), deadPlayer);
-                        UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(deadPlayer.getId(), deadSpeedRunner.toNBT()), deadPlayer);
-
-                        if (UMGame.isHardcore()) // Hardcore?
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
+                        return; // Took life from hardcore speed runner, end method
+                    }
+                    if (sourceEntity instanceof Player killer)
+                    {
+                        killer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
                         {
-                            // Remove a player life
-                            MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, false));
-
-                            if (deadSpeedRunner.getLives() <= 0)
+                            if (umPlayer.isHunter())
                             {
-                                MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(deadPlayer, PlayerSpeedRunner.getIsBuffedHunterOnFinalDeath(), true));
-
-                                if (PlayerSpeedRunner.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
+                                MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, killer));
+                            } else
+                            {
+                                if (isNearHunter(deadPlayer))
                                 {
-                                    MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN, PlayerSpeedRunner.getRemainingSpeedRunners(), PlayerHunter.getHunters())); // No more speed runners. Hunters win!
+                                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, killer));
                                 }
                             }
-                            return; // End method
-                        }
-                        if (sourceEntity instanceof Player killer) // Is killer a player?
-                        {
-                            killer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(killerHunter ->
-                            {
-                                if (killerHunter.isHunter()) // was killer a hunter?
-                                {
-                                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
+                        });
+                        return;
+                    }
+                    if (isNearHunter(deadPlayer))
+                    {
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
 
-                                    if (deadSpeedRunner.getLives() <= 0) // Does the speed runner still have lives remaining?
-                                    {
-                                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(deadPlayer, PlayerSpeedRunner.getIsBuffedHunterOnFinalDeath(), true));
-
-                                        if (PlayerSpeedRunner.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
-                                        {
-                                            MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN, PlayerSpeedRunner.getRemainingSpeedRunners(), PlayerHunter.getHunters())); // No more speed runners. Hunters win!
-                                        }
-                                    }
-                                } else // Killer was not a hunter
-                                {
-                                    // Don't want speed runners to die to another entity to avoid losing a life when near hunters
-                                    if (isNearHunter(deadPlayer)) // Check if the dead player was near a hunter when they died
-                                    {
-                                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
-
-                                        if (deadSpeedRunner.getLives() <= 0)
-                                        {
-                                            MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(deadPlayer, PlayerSpeedRunner.getIsBuffedHunterOnFinalDeath(), true));
-
-                                            if (PlayerSpeedRunner.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
-                                            {
-                                                MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN, PlayerSpeedRunner.getRemainingSpeedRunners(), PlayerHunter.getHunters())); // No more speed runners. Hunters win!
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                            return; // End method
-                        }
-                        // Player did not die to a hunter
-                        if (isNearHunter(deadPlayer)) // Check if the dead player was near a hunter when they died
-                        {
-                            MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
-
-                            if (deadSpeedRunner.getLives() <= 0)
-                            {
-                                MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(deadPlayer, PlayerSpeedRunner.getIsBuffedHunterOnFinalDeath(), true));
-
-                                if (PlayerSpeedRunner.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
-                                {
-                                    MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN, PlayerSpeedRunner.getRemainingSpeedRunners(), PlayerHunter.getHunters())); // No more speed runners. Hunters win!
-                                }
-                            }
-                        }
-                    });
-                } else // Player is a hunter
+                    }
+                } else if (deadUMPlayer.isHunter()) // Player is a hunter
                 {
                     if (UMGame.areHuntersOnGracePeriod()) // Are hunters on grace period?
                     {
@@ -180,7 +130,7 @@ public class ForgeEvents {
 
     private static boolean isNearHunter(Player playerSpeedRunner)
     {
-        for (Player playerHunter : PlayerHunter.getHunters()) // Loop through all hunters
+        for (Player playerHunter : UMPlayer.getHunters(false)) // Loop through all hunters
         {
             if (UMGame.isNearHunter(playerSpeedRunner, playerHunter))
             {
@@ -204,11 +154,11 @@ public class ForgeEvents {
         {
             if (hurtEntity instanceof Player player)
             {
-                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+                player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
                 {
-                    if (playerHunter.isHunter() && UMGame.areHuntersOnGracePeriod())
+                    if (umPlayer.isHunter() && UMGame.areHuntersOnGracePeriod())
                     {
-                        event.setCanceled(true); // Hunters cannot be hurt during their grace period
+                        event.setCanceled(true);
                     }
                 });
 
@@ -234,38 +184,33 @@ public class ForgeEvents {
             }
             if (attacker instanceof Player attackingPlayer)
             {
-                attackingPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(attackingHunter ->
+                attackingPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(attackingUMPlayer ->
                 {
-                    attackedPlayer.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(attackedHunter ->
+                    attackedPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(attackedUMPlayer ->
                     {
-                        if (attackingHunter.isHunter()) // Is attacker a hunter
+                        if (attackingUMPlayer.isHunter())
                         {
-                            if (attackedHunter.isHunter()) // Is attacked a hunter?
+                            if (attackedUMPlayer.isHunter())
                             {
-                                if (!UMGame.isFriendlyFire()) // Friendly fire?
+                                if (!UMGame.isFriendlyFire())
                                 {
-                                    event.setCanceled(true); // Hunters cannot hurt each other
+                                    event.setCanceled(true);
                                 }
-                            } else // attacked is not a hunter
+
+                            } else if (attackedUMPlayer.isSpeedRunner())
                             {
-                                attackedPlayer.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(attackedSpeedRunner ->
+                                if (attackedUMPlayer.isWasLastKilledByHunter() && UMPlayer.isSpeedRunnerOnGracePeriodServer(attackedPlayer))
                                 {
-                                    if (attackedSpeedRunner.getWasLastKilledByHunter() && UMGame.isSpeedRunnerOnGracePeriod(attackedPlayer)) // Was the speed runner last killed by a hunter and are they on grace period?
-                                    {
-                                        long duration = (attackedSpeedRunner.getGracePeriodTimeStamp() - UMGame.getCurrentGameTime()) / 20;
-                                        attackingPlayer.sendSystemMessage(Component.literal(ChatFormatting.BLUE + "Player is immune to hunters for " + ChatFormatting.YELLOW + duration + ChatFormatting.BLUE + " seconds"));
-                                        event.setCanceled(true); // Hunter cannot attack speed runners on grace period
-                                    }
-                                });
+                                    long duration = (attackedUMPlayer.getGracePeriodTimeStamp() - UMGame.getCurrentGameTime()) / 20;
+                                    attackingPlayer.sendSystemMessage(Component.literal(ChatFormatting.BLUE + attackedPlayer.getName().getString() + " is immune to hunters for " + ChatFormatting.YELLOW + duration + ChatFormatting.BLUE + " seconds"));
+                                    event.setCanceled(true); // Hunter cannot attack speed runners on grace period
+                                }
                             }
-                        } else // Attacker is not a hunter
+                        } else if (attackingUMPlayer.isSpeedRunner())
                         {
-                            if (!attackedHunter.isHunter()) // Is the target not a hunter?
+                            if (attackedUMPlayer.isSpeedRunner() && !UMGame.isFriendlyFire())
                             {
-                                if (!UMGame.isFriendlyFire()) // Friendly fire?
-                                {
-                                    event.setCanceled(true); // Speed runners cannot hurt each other
-                                }
+                                event.setCanceled(true);
                             }
                         }
                     });
@@ -288,8 +233,7 @@ public class ForgeEvents {
         UMPackets.sendToPlayer(new HardcoreUpdateS2CPacket(UMGame.isHardcore()), player); // Let the player know whether hardcore is enabled
         UMPackets.sendToPlayer(new HunterGracePeriodDurationS2CPacket(UMGame.getHunterGracePeriod()), player); // Let the player know the hunter grace period
         UMPackets.sendToPlayer(new SpeedRunnerGracePeriodDurationS2CPacket(UMGame.getSpeedRunnerGracePeriod()), player); // Let the player know the speed runner grace period
-        UMPackets.sendToPlayer(new SpeedRunnerMaxLifeChangeS2CPacket(PlayerSpeedRunner.getMaxLives()), player); // Let the player know how many lives speed runners can have
-        UMPackets.sendToPlayer(new RemainingPlayerCountS2CPacket(PlayerSpeedRunner.getRemainingSpeedRunners().size(), PlayerHunter.getHunters().size()), player); // Let the player know how many remaining players on each team
+        UMPackets.sendToPlayer(new SpeedRunnerMaxLifeChangeS2CPacket(UMPlayer.getMaxLives()), player); // Let the player know how many lives speed runners can have
         // Game Time packets and updates are sent every tick. It is redundant to send them at this moment
 
         if (!UMGame.isWindTorchEnabled())
@@ -302,35 +246,48 @@ public class ForgeEvents {
             if (!UMGame.containsLoggedPlayerUUID(player)) // Is the player not part of this iteration (did they join when a game has already started)?
             {
                 // Not already part of this iteration
-                UMGame.logPlayerUUID(player); // Log them
-                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+                player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
                 {
-                    // Assign new player their lives (assume they are a speed runner by default)
-                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
-                    playerSpeedRunner.setWasLastKilledByHunter(false);
-                    UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-                    UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
-                });
-                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-                {
-                    // Newly-joined player is not to be a hunter.
-                    playerHunter.setHunter(false);
-                    playerHunter.setBuffed(false);
-                    UMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
-                    UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
-                });
-                if (UMGame.isWindTorchEnabled()) // Is the Wind Torch enabled?
-                {
-                    player.getInventory().add(new ItemStack(UMItems.WIND_TORCH.get())); // Grant the player a Wind Torch
-                }
-            }
-            player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-            {
-                if (playerHunter.isHunter())
-                {
-                    if (playerHunter.isBuffed() && UMGame.State.isGameRunning())
+                    player.sendSystemMessage(Component.literal("You joined a Manhunt game that is already in progress and have been declared as a " + UMGame.getNewPlayerRole().getAsName()));
+                    player.getInventory().clearContent(); // Clear items
+                    switch (UMGame.getNewPlayerRole())
                     {
-                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Grant player hunter attributes if they are a buffed hunter
+                        case SPECTATOR ->
+                        {
+                            umPlayer.resetToSpectator(player, true);
+                        }
+                        case SPEED_RUNNER ->
+                        {
+                            if (player instanceof ServerPlayer serverPlayer)
+                            {
+                                serverPlayer.setGameMode(GameType.DEFAULT_MODE);
+                            }
+                            umPlayer.resetToSpeedRunner(player, true);
+                            if (UMGame.isWindTorchEnabled()) // Is the Wind Torch enabled?
+                            {
+                                player.getInventory().add(new ItemStack(UMItems.WIND_TORCH.get())); // Grant the player a Wind Torch
+                            }
+                        }
+                        case HUNTER ->
+                        {
+                            if (player instanceof ServerPlayer serverPlayer)
+                            {
+                                serverPlayer.setGameMode(GameType.DEFAULT_MODE);
+                            }
+                            umPlayer.resetToHunter(player, true);
+                        }
+                        default -> umPlayer.resetToSpectator(player, true);
+                    }
+                    umPlayer.sendUpdateFromServerToSelf(player);
+                });
+            }
+            player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
+            {
+                if (umPlayer.isHunter())
+                {
+                    if (umPlayer.isBuffedHunter() && UMGame.State.isGameRunning())
+                    {
+                        player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes()); // Grant player hunter attributes if they are a buffed hunter
                     }
                     if (UMGame.getCurrentGameTime() < UMGame.getHunterGracePeriod())
                     {
@@ -340,10 +297,20 @@ public class ForgeEvents {
                     }
                 }
             });
+            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let players know how many remaining players on each team
         }
-        player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner -> UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player));
-        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter -> UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player));
-        player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime -> UMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player.getId(), playerGameTime.toNBT()), player));
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event)
+    {
+        if (event.getEntity().level().isClientSide)
+        {
+            return;
+        }
+        // Update count for remaining players
+        UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
+        // TODO: Pause game if there aren't enough speed runners or hunters
     }
 
     @SubscribeEvent
@@ -355,20 +322,17 @@ public class ForgeEvents {
             UMSoundEvents.stopFlatlineSound(player); // Stop heart flatline on respawn
 
             // Player has just respawned. Set their grace period time stamp if they were previously killed by a hunter
-            player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+            player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
-                if (playerSpeedRunner.getWasLastKilledByHunter()) // Was the speed runner last killed by a hunter?
+                if (umPlayer.isWasLastKilledByHunter())
                 {
                     long timeStamp = UMGame.getCurrentGameTime() + UMGame.getSpeedRunnerGracePeriod();
-                    playerSpeedRunner.setGracePeriodTimeStamp(timeStamp);
-                    player.sendSystemMessage(Component.literal("Grace period ends at game time: " + timeStamp));
-
-                } else // Player was not killed by a hunter previously
+                    umPlayer.setGracePeriodTimeStamp(timeStamp);
+                } else
                 {
-                    playerSpeedRunner.setGracePeriodTimeStamp(0);
+                    umPlayer.setGracePeriodTimeStamp(0);
                 }
-                UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-                UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player.getId(), playerSpeedRunner.toNBT()), player);
+                umPlayer.sendUpdateFromServerToSelf(player);
             });
         }
     }
@@ -381,24 +345,10 @@ public class ForgeEvents {
 
         if (targetEntity instanceof Player playerTarget)
         {
-            playerTarget.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+            playerTarget.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
-                // Send player the data about the entity they are tracking
-                UMPackets.sendToAllTrackingEntity(new SpeedRunnerCapabilitySyncS2CPacket(playerTarget.getId(), playerSpeedRunner.toNBT()), player);
+                umPlayer.sendUpdateFromServer(playerTarget, player);
             });
-            playerTarget.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-            {
-                // Send player the data about the entity they are tracking
-                UMPackets.sendToAllTrackingEntity(new HunterCapabilitySyncS2CPacket(playerTarget.getId(), playerHunter.toNBT()), player);
-            });
-            playerTarget.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-            {
-                // Send player the data about the current game time
-                UMPackets.sendToAllTrackingEntity(new GameTimeCapabilitySyncS2CPacket(playerTarget.getId(), playerGameTime.toNBT()), player);
-            });
-
-            // TODO: When capability data changes, you need to send the new data to ALL tracking players and the player themselves.
-            // May need to find where S2C packets are sent for the client values
         }
     }
 
@@ -410,48 +360,11 @@ public class ForgeEvents {
 
         if (targetEntity instanceof Player playerTarget)
         {
-            playerTarget.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
+            playerTarget.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
-                // Send player the data about the entity they are tracking
-                UMPackets.sendToAllTrackingEntity(new SpeedRunnerCapabilitySyncS2CPacket(playerTarget.getId(), playerSpeedRunner.toNBT()), player);
-            });
-            playerTarget.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-            {
-                // Send player the data about the entity they are tracking
-                UMPackets.sendToAllTrackingEntity(new HunterCapabilitySyncS2CPacket(playerTarget.getId(), playerHunter.toNBT()), player);
-            });
-            playerTarget.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-            {
-                // Send player the data about the current game time
-                UMPackets.sendToAllTrackingEntity(new GameTimeCapabilitySyncS2CPacket(playerTarget.getId(), playerGameTime.toNBT()), player);
+                umPlayer.sendUpdateFromServer(playerTarget, player);
             });
         }
     }
-
-//    @SubscribeEvent
-//    public static void onGameStart(ReverseManhuntGameStateEvent.Start event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGamePause(ReverseManhuntGameStateEvent.Pause event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGameResume(ReverseManhuntGameStateEvent.Resume event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGameEnd(ReverseManhuntGameStateEvent.End event)
-//    {
-//
-//    }
-
-
 
 }

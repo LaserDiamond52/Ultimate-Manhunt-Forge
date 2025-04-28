@@ -4,10 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
-import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
+import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -21,13 +18,11 @@ import org.jetbrains.annotations.NotNull;
  */
 public class SetGracePeriodCommand {
 
-    private static final int PERMISSION_LEVEL = 2;
-
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(
                 Commands.literal("grace_period")
-                        .requires(sourceStack -> ForgeServerEvents.permission(sourceStack, PERMISSION_LEVEL))
+                        .requires(UltimateManhunt::hasPermission)
                         .then(
                                 Commands.literal("hunter")
                                         .then(
@@ -89,13 +84,11 @@ public class SetGracePeriodCommand {
             case HUNTERS ->
             {
                 UMGame.setHunterGracePeriod(newDuration);
-                UMPackets.sendToAllClients(new HunterGracePeriodDurationS2CPacket(newDuration));
                 logGracePeriodChange(commandContext.getSource(), team, newDuration);
             }
             case SPEED_RUNNERS ->
             {
                 UMGame.setSpeedRunnerGracePeriod(newDuration);
-                UMPackets.sendToAllClients(new SpeedRunnerGracePeriodDurationS2CPacket(newDuration));
                 logGracePeriodChange(commandContext.getSource(), team, newDuration);
             }
         }

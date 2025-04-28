@@ -1,7 +1,6 @@
-package net.laserdiamond.ultimatemanhunt.network.packet.game;
+package net.laserdiamond.ultimatemanhunt.network.packet.game.announce;
 
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
-import net.laserdiamond.ultimatemanhunt.network.packet.AnnounceS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -10,17 +9,19 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
-public class GameEndAnnounceS2CPacket extends AnnounceS2CPacket {
+public final class GameEndAnnounceS2CPacket extends AnnounceS2CPacket {
 
-    protected final UltimateManhuntGameStateEvent.End.Reason reason;
+    private final UltimateManhuntGameStateEvent.End.Reason reason;
 
     public GameEndAnnounceS2CPacket(UltimateManhuntGameStateEvent.End.Reason reason)
     {
+        super();
         this.reason = reason;
     }
 
     public GameEndAnnounceS2CPacket(FriendlyByteBuf buf)
     {
+        super(buf);
         this.reason = UltimateManhuntGameStateEvent.End.Reason.fromOrdinal(buf.readInt());
     }
 
