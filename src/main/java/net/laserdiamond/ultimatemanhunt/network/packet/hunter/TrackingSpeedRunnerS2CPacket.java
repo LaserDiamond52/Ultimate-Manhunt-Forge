@@ -7,7 +7,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
+import org.joml.Vector3f;
 
 import java.util.UUID;
 
@@ -20,7 +21,7 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
     private final String playerName;
     private final UUID playerUUID;
     private final float distance;
-    private final Vec3 position;
+    private final Vector3f position;
 
     public TrackingSpeedRunnerS2CPacket(boolean speedRunnersPresent, Player player, float distance)
     {
@@ -28,7 +29,7 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         this.playerName = player.getName().getString();
         this.playerUUID = player.getUUID();
         this.distance = distance;
-        this.position = player.getEyePosition();
+        this.position = player.getEyePosition().toVector3f();
     }
 
     public TrackingSpeedRunnerS2CPacket(FriendlyByteBuf buf)
@@ -37,7 +38,7 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         this.playerName = buf.readUtf();
         this.playerUUID = buf.readUUID();
         this.distance = buf.readFloat();
-        this.position = buf.readVec3();
+        this.position = buf.readVector3f();
     }
 
     @Override
@@ -46,11 +47,11 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         buf.writeUtf(this.playerName);
         buf.writeUUID(this.playerUUID);
         buf.writeFloat(this.distance);
-        buf.writeVec3(this.position);
+        buf.writeVector3f(this.position);
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         // ON CLIENT
         LocalPlayer player = Minecraft.getInstance().player;
@@ -62,7 +63,7 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         ClientTrackedSpeedRunner.setTrackedPlayerName(this.playerName);
         ClientTrackedSpeedRunner.setTrackedPlayerUUID(this.playerUUID);
         ClientTrackedSpeedRunner.setDistance(this.distance);
-        ClientTrackedSpeedRunner.setPosition(this.position);
+        ClientTrackedSpeedRunner.setPosition(new Vec3(this.position));
 
     }
 }

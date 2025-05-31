@@ -1,13 +1,13 @@
 package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
 
-import net.laserdiamond.ultimatemanhunt.network.packet.AnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.AnnounceS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 public class HunterReleaseAnnounceS2CPacket extends AnnounceS2CPacket {
 
@@ -30,7 +30,7 @@ public class HunterReleaseAnnounceS2CPacket extends AnnounceS2CPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         // ON CLIENT
         Minecraft minecraft = Minecraft.getInstance();

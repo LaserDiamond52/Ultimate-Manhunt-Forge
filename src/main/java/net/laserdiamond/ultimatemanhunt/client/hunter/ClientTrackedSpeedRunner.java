@@ -1,6 +1,7 @@
 package net.laserdiamond.ultimatemanhunt.client.hunter;
 
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 
 import java.util.UUID;
 
@@ -10,7 +11,7 @@ public class ClientTrackedSpeedRunner {
     private static String playerName;
     private static UUID playerUUID;
     private static float distance;
-    private static Vec3 position;
+    private static Vector3f position;
 
     public static void setSpeedRunnersPresent(boolean speedRunnersPresent)
     {
@@ -54,11 +55,11 @@ public class ClientTrackedSpeedRunner {
 
     public static void setPosition(Vec3 position)
     {
-        ClientTrackedSpeedRunner.position = position;
+        ClientTrackedSpeedRunner.position = position.toVector3f();
     }
 
     public static Vec3 getPosition()
     {
-        return ClientTrackedSpeedRunner.position;
+        return new Vec3(ClientTrackedSpeedRunner.position);
     }
 }

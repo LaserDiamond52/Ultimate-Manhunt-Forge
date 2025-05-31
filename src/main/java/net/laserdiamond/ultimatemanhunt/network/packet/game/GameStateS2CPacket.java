@@ -4,7 +4,7 @@ import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 /**
  * {@linkplain NetworkPacket Packet} sent from the server to the client to indicate the current {@link UMGame.State game state}
@@ -30,7 +30,7 @@ public class GameStateS2CPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         // ON CLIENT
         ClientGameState.setGameState(this.gameState);

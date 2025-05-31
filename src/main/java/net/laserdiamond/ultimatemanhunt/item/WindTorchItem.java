@@ -1,57 +1,51 @@
 package net.laserdiamond.ultimatemanhunt.item;
 
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import net.laserdiamond.laserutils.util.AssetSkipModel;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.ItemAttributeModifiers;
-import net.minecraft.world.item.component.Tool;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.List;
+import java.util.UUID;
 
 public class WindTorchItem extends Item implements AssetSkipModel {
 
+    private final Multimap<Attribute, AttributeModifier> defaultModifiers;
+
+    private static final UUID BASE_ATTACK_KNOCKBACK_UUID = UUID.fromString("10ece3e2-ecd1-4525-abe1-81ce91dfd55c");
+
     public WindTorchItem(Properties pProperties)
     {
-        super(pProperties.durability(50)
-                .attributes(createAttributes())
-                .component(DataComponents.TOOL, createToolProperties()));
+        super(pProperties.durability(50));
+        ImmutableMultimap.Builder<Attribute, AttributeModifier> modifierBuilder = ImmutableMultimap.builder();
+        modifierBuilder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "mainhand.attributes", -3.2f, AttributeModifier.Operation.ADDITION));
+        modifierBuilder.put(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(BASE_ATTACK_KNOCKBACK_UUID, "mainhand.attribute", 200, AttributeModifier.Operation.ADDITION));
+        this.defaultModifiers = modifierBuilder.build();
     }
 
-    private static ItemAttributeModifiers createAttributes()
-    {
-        return ItemAttributeModifiers.builder()
-                .add(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(UltimateManhunt.fromRMPath("base_attack_knockback"), 200F, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-                .add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, -3.2F, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND)
-                .build();
-    }
-
-    private static Tool createToolProperties()
-    {
-        return new Tool(List.of(), 1.0F, 2);
+    @Override
+    public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot pSlot) {
+        return pSlot == EquipmentSlot.MAINHAND ? this.defaultModifiers : super.getDefaultAttributeModifiers(pSlot);
     }
 
     @Override
     public boolean hurtEnemy(ItemStack pStack, LivingEntity pTarget, LivingEntity pAttacker) {
+        pStack.hurtAndBreak(1, pAttacker, living -> living.broadcastBreakEvent(EquipmentSlot.MAINHAND));
         return true;
     }
 
-    @Override
-    public void postHurtEnemy(ItemStack pStack, LivingEntity pTarget, LivingEntity pAttacker) {
-        pStack.hurtAndBreak(1, pAttacker, EquipmentSlot.MAINHAND);
-    }
+
 
     @Override
     public boolean canAttackBlock(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer) {

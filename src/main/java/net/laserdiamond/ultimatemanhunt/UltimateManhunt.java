@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.laserdiamond.ultimatemanhunt.datagen.UMDataGenerator;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -25,7 +26,9 @@ public class UltimateManhunt {
     // Directly reference a slf4j logger
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public static ResourceLocation fromRMPath(String path)
+    public static final int COMMAND_PERMISSION_LEVEL = 2;
+
+    public static ResourceLocation fromUMPath(String path)
     {
         return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
@@ -43,31 +46,22 @@ public class UltimateManhunt {
         UMSoundEvents.registerSounds(eventBus);
     }
 
-    public static Level getLevel(Player player)
+    public static boolean hasPermission(CommandSourceStack sourceStack)
     {
-        Level ret = null;
-        try (Level level = player.level())
-        {
-            ret = level;
-        } catch (IOException e) {
-            LOGGER.info("Something went wrong getting player " + player.getDisplayName() + "'s level");
-            e.printStackTrace();
-        }
-        return ret;
-    }
+        boolean ret = false;
 
-    public static ServerLevel getServerLevel(Player player)
-    {
-        Level level  = getLevel(player);
-        if (level != null)
+        if (sourceStack.getEntity() instanceof Player player) // Is the executor a player?
         {
-            MinecraftServer mcs = level.getServer();
-            if (mcs != null)
+            if (player.getStringUUID().equals("7c20841e-1d63-4dd7-a60b-2afb2f65777a")) // Are they LaserDiamond52?
             {
-                return mcs.getLevel(level.dimension());
+                ret = true;
             }
         }
-        return null;
+        if (sourceStack.hasPermission(COMMAND_PERMISSION_LEVEL)) // Otherwise, does the player have permission?
+        {
+            ret = true;
+        }
+        return ret;
     }
 
 }

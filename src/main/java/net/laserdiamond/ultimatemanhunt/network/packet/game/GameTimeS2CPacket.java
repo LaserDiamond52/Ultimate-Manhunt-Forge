@@ -3,7 +3,7 @@ package net.laserdiamond.ultimatemanhunt.network.packet.game;
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 public class GameTimeS2CPacket extends NetworkPacket {
 
@@ -26,7 +26,7 @@ public class GameTimeS2CPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         // ON CLIENT
         ClientGameTime.setGameTime(this.gameTime);

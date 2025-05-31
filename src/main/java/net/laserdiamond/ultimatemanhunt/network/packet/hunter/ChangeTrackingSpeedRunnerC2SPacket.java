@@ -1,14 +1,13 @@
 package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunter;
-import net.laserdiamond.ultimatemanhunt.capability.hunter.PlayerHunterCapability;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.client.UMKeyBindings;
-import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -41,18 +40,18 @@ public class ChangeTrackingSpeedRunnerC2SPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         final ServerPlayer player = context.getSender();
         if (player == null)
         {
             return;
         }
-        List<Player> availableSpeedRunners = PlayerHunter.getAvailableSpeedRunners(player);
+        List<Player> availableSpeedRunners = UMPlayer.getAvailableSpeedRunners(player);
 
-        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+        player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
-            int trackingIndex = playerHunter.getTrackingIndex();
+            int trackingIndex = umPlayer.getTrackingIndex();
             if (availableSpeedRunners.isEmpty())
             {
                 return;
@@ -66,10 +65,30 @@ public class ChangeTrackingSpeedRunnerC2SPacket extends NetworkPacket {
                 trackingIndex = decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
             }
             targetPlayer = availableSpeedRunners.get(trackingIndex);
-            playerHunter.setPlayerToTrack(trackingIndex, targetPlayer);
-
-            UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player.getId(), playerHunter.toNBT()), player);
+            umPlayer.setPlayerToTrack(trackingIndex, targetPlayer)
+                        .sendUpdateFromServerToSelf(player);
         });
+
+//        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
+//        {
+//            int trackingIndex = playerHunter.getTrackingIndex();
+//            if (availableSpeedRunners.isEmpty())
+//            {
+//                return;
+//            }
+//            Player targetPlayer;
+//            if (this.isNext)
+//            {
+//                trackingIndex = incrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+//            } else
+//            {
+//                trackingIndex = decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+//            }
+//            targetPlayer = availableSpeedRunners.get(trackingIndex);
+//            playerHunter.setPlayerToTrack(trackingIndex, targetPlayer);
+//
+//            UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player, playerHunter), player);
+//        });
 
     }
 

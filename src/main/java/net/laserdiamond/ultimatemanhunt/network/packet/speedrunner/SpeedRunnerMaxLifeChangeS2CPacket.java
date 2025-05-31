@@ -1,9 +1,9 @@
 package net.laserdiamond.ultimatemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
-import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientSpeedRunner;
+import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientSpeedRunnerMaxLives;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 public class SpeedRunnerMaxLifeChangeS2CPacket extends NetworkPacket {
 
@@ -25,8 +25,8 @@ public class SpeedRunnerMaxLifeChangeS2CPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
-        ClientSpeedRunner.setMaxLives(this.maxLives);
+        ClientSpeedRunnerMaxLives.setMaxLives(this.maxLives);
     }
 }

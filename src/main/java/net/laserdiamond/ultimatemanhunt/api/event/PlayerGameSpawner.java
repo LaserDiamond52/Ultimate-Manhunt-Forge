@@ -1,19 +1,27 @@
 package net.laserdiamond.ultimatemanhunt.api.event;
 
+import com.google.common.base.Predicates;
 import net.laserdiamond.laserutils.util.raycast.ServerRayCast;
 import net.laserdiamond.ultimatemanhunt.UMGame;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.portal.DimensionTransition;
+import net.minecraft.world.level.portal.PortalForcer;
+import net.minecraft.world.level.portal.PortalInfo;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.util.ITeleporter;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Interface used for Events that move players into the specified spawn position at the start of the game
@@ -37,7 +45,7 @@ public interface PlayerGameSpawner {
             int yMin = overworld.getMinBuildHeight();
             Set<RelativeMovement> relativeMovements = EnumSet.noneOf(RelativeMovement.class);
             // Ray cast to find spawn position to start the game
-            ServerRayCast<Player, Double, Double> src = ServerRayCast.create(overworld, new Vec3(xSpawn, yMax, zSpawn), Entity::isAttackable, Player.class, List.of());
+            ServerRayCast<Player, Double, Double> src = ServerRayCast.create(overworld, new Vec3(xSpawn, yMax, zSpawn), Predicates.alwaysFalse(), Player.class, List.of());
             src.setCanPierceEntities() // Go through entities
                     .setStepIncrement(1)
                     .fireAtVec3D(new Vec3(xSpawn, yMin, zSpawn), 0); // Fire straight down
@@ -57,8 +65,16 @@ public interface PlayerGameSpawner {
     default ServerLevel moveToOverworld(Player player, MinecraftServer mcServer)
     {
         ServerLevel overworld = mcServer.overworld();
-        DimensionTransition transition = new DimensionTransition(overworld, player, pEntity -> {});
-        player.changeDimension(transition);
+        Level pLevel = player.level();
+        if (!pLevel.dimension().equals(Level.OVERWORLD)) // Is player not in overworld?
+        {
+            player.changeDimension(overworld, new ITeleporter() {
+                @Override
+                public @NotNull PortalInfo getPortalInfo(Entity entity, ServerLevel destWorld, Function<ServerLevel, PortalInfo> defaultPortalInfo) {
+                    return new PortalInfo(entity.position(), Vec3.ZERO, entity.getYRot(), entity.getXRot());
+                }
+            });
+        }
         return overworld;
     }
 }

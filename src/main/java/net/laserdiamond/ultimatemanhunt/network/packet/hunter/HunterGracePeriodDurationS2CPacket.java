@@ -3,7 +3,7 @@ package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientHunterGracePeriod;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.event.network.CustomPayloadEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 public class HunterGracePeriodDurationS2CPacket extends NetworkPacket {
 
@@ -25,7 +25,7 @@ public class HunterGracePeriodDurationS2CPacket extends NetworkPacket {
     }
 
     @Override
-    public void packetWork(CustomPayloadEvent.Context context)
+    public void packetWork(NetworkEvent.Context context)
     {
         ClientHunterGracePeriod.setGracePeriodDuration(this.durationTicks);
     }
