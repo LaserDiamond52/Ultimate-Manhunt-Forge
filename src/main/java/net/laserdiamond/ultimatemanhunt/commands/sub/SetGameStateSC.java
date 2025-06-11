@@ -52,7 +52,7 @@ public final class SetGameStateSC extends UltimateManhuntCommands.SubCommand {
     {
         if (successful)
         {
-            source.sendSuccess(() -> Component.literal("Set the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.WHITE + " to " + ChatFormatting.AQUA + newGameState.getName()), true);
+            source.sendSuccess(() -> Component.literal("Set the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.WHITE + " to " + ChatFormatting.AQUA + newGameState.getAsName()), true);
 
             for (ServerPlayer player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers())
             {
@@ -66,7 +66,7 @@ public final class SetGameStateSC extends UltimateManhuntCommands.SubCommand {
             }
         } else
         {
-            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + UMGame.getCurrentGameState().getName() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.getName()));
+            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + UMGame.getCurrentGameState().getAsName() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.getAsName()));
         }
     }
 

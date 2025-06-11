@@ -29,8 +29,7 @@ public final class SetCurrentPlayerRoleSC extends UltimateManhuntCommands.SubCom
                 .then(
                         Commands.literal("roles")
                                 .then(
-                                        Commands.literal("players")
-                                                .requires(UltimateManhunt::hasPermission)
+                                        Commands.literal("current")
                                                 .then(
                                                         Commands.argument("target", EntityArgument.players())
                                                                 .then(
@@ -69,7 +68,8 @@ public final class SetCurrentPlayerRoleSC extends UltimateManhuntCommands.SubCom
             serverPlayer.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
                 UMGame.PlayerRole oldRole = umPlayer.getRole();
-                umPlayer.setRole(playerRole);
+                umPlayer.setRole(playerRole)
+                        .setBuffedHunter(isBuffedHunter);
                 if (oldRole == UMGame.PlayerRole.SPECTATOR && playerRole != UMGame.PlayerRole.SPECTATOR)
                 {
                     serverPlayer.setGameMode(GameType.DEFAULT_MODE);
@@ -77,18 +77,18 @@ public final class SetCurrentPlayerRoleSC extends UltimateManhuntCommands.SubCom
                 source.sendSuccess(() -> Component.literal("Set " + serverPlayer.getName().getString() + "'s role from " + oldRole.getAsName() + " to " + playerRole.getAsName()), true);
                 if (playerRole == UMGame.PlayerRole.HUNTER)
                 {
-                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(serverPlayer, isBuffedHunter, false));
+//                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(serverPlayer, isBuffedHunter, false));
                     if (isBuffedHunter)
                     {
                         source.sendSuccess(() -> Component.literal(serverPlayer.getName().getString() + " has been set to be a buffed hunter"), true);
                     }
                 } else
                 {
-                    if (playerRole == UMGame.PlayerRole.SPECTATOR)
-                    {
-                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(serverPlayer, false));
-                    }
-                    umPlayer.setBuffedHunter(false);
+//                    if (playerRole == UMGame.PlayerRole.SPECTATOR)
+//                    {
+//                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(serverPlayer, false));
+//                    }
+                    umPlayer.setBuffedHunter(false); // Player isn't being declared a hunter, so buffs don't apply
                 }
                 umPlayer.sendUpdateFromServerToSelf(serverPlayer);
 

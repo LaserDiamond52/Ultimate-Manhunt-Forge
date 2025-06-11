@@ -16,7 +16,7 @@ public class UltimateManhuntCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
-        LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal("ultimate_manhunt").requires(UltimateManhunt::hasPermission);
+        LiteralArgumentBuilder<CommandSourceStack> command = Commands.literal(UltimateManhunt.MODID).requires(UltimateManhunt::hasPermission);
         addArgs(command);
         dispatcher.register(command);
     }

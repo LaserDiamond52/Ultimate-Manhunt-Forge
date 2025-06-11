@@ -117,6 +117,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             UMGame.resetGameTime(); // Reset the game time
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
             UMPackets.sendToAllClients(new GameStartAnnounceS2CPacket());
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
         }
 
         @Override
@@ -356,7 +357,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             super();
             UMPackets.sendToAllClients(new GamePausedAnnounceS2CPacket());
-            UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(0));
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
         }
 
         @Override
@@ -399,8 +400,8 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             super();
             UMPackets.sendToAllClients(new GameResumedS2CPacket());
-            UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(0));
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
         }
 
         @Override

@@ -59,10 +59,10 @@ public class ChangeTrackingSpeedRunnerC2SPacket extends NetworkPacket {
             Player targetPlayer;
             if (this.isNext)
             {
-                trackingIndex = incrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+                trackingIndex = this.incrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
             } else
             {
-                trackingIndex = decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+                trackingIndex = this.decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
             }
             targetPlayer = availableSpeedRunners.get(trackingIndex);
             umPlayer.setPlayerToTrack(trackingIndex, targetPlayer)
@@ -91,6 +91,8 @@ public class ChangeTrackingSpeedRunnerC2SPacket extends NetworkPacket {
 //        });
 
     }
+
+    // NOTE: Tracking index gets updated on the server
 
     private int incrementTrackingIndex(int trackingIndex, int max)
     {

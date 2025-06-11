@@ -31,7 +31,7 @@ public final class SpeedRunnerLivesOverlay implements UMHUDOverlay {
             int drawX = (guiGraphics.guiWidth() / 2 - 104);
             int drawY = (guiGraphics.guiHeight() - 39);
 
-            if (UMPlayer.getMaxLives() <= 5)
+            if (ClientSpeedRunnerMaxLives.getMaxLives() <= 5)
             {
                 for (int i = 0; i < ClientSpeedRunnerMaxLives.getMaxLives(); i++)
                 {

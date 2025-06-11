@@ -27,6 +27,7 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
@@ -313,7 +314,7 @@ public class ForgeEvents {
                     }
                 }
             });
-            UMPackets.sendToPlayer(new RemainingPlayerCountS2CPacket(), player); // Let the player know how many remaining players on each team
+            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let all player know how many remaining players on each team
         }
     }
 
@@ -339,6 +340,8 @@ public class ForgeEvents {
             // Player has just respawned. Set their grace period time stamp if they were previously killed by a hunter
             player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
+                // Assume the player is not near a hunter anymore
+                SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(player);
                 if (umPlayer.isWasLastKilledByHunter())
                 {
                     long timeStamp = UMGame.getCurrentGameTime() + UMGame.getSpeedRunnerGracePeriod();

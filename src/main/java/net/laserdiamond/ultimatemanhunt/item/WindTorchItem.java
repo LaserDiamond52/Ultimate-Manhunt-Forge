@@ -29,8 +29,8 @@ public class WindTorchItem extends Item implements AssetSkipModel {
     {
         super(pProperties.durability(50));
         ImmutableMultimap.Builder<Attribute, AttributeModifier> modifierBuilder = ImmutableMultimap.builder();
-        modifierBuilder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "mainhand.attributes", -3.2f, AttributeModifier.Operation.ADDITION));
-        modifierBuilder.put(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(BASE_ATTACK_KNOCKBACK_UUID, "mainhand.attribute", 200, AttributeModifier.Operation.ADDITION));
+        modifierBuilder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "mainhand.attributes", -3.2f, AttributeModifier.Operation.ADDITION));
+        modifierBuilder.put(Attributes.ATTACK_KNOCKBACK, new AttributeModifier(BASE_ATTACK_KNOCKBACK_UUID, "mainhand.attribute", 3, AttributeModifier.Operation.ADDITION));
         this.defaultModifiers = modifierBuilder.build();
     }
 

@@ -5,7 +5,9 @@ import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -21,19 +23,30 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
         super(speedRunner);
         this.wasKilledByHunter = (hunter != null);
 
+        if (speedRunner.level().isClientSide)
+        {
+            return;
+        }
+        MinecraftServer server = speedRunner.getServer();
+        if (server == null)
+        {
+            return;
+        }
         speedRunner.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
             umPlayer.subtractLife()
                     .setWasLastKilledByHunter(this.wasKilledByHunter)
                     .sendUpdateFromServerToSelf(speedRunner);
 
-            UMSoundEvents.playFlatlineSound(speedRunner);
             if (this.wasKilledByHunter)
             {
+                UMSoundEvents.playFlatlineSound(speedRunner);
                 speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were killed by a Hunter and lost a life!"));
+                UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " was killed by " + hunter.getDisplayName().getString() + " and lost a life!"));
             } else
             {
                 speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You died and lost a life!"));
+                UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " died and lost a life!"));
             }
 
             if (umPlayer.getLives() <= 0)
@@ -41,9 +54,11 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
                 if (UMGame.getDeadSpeedRunnerRole() == UMGame.PlayerRole.HUNTER)
                 {
                     MinecraftForge.EVENT_BUS.post(new SpeedRunnerToHunterEvent(speedRunner, UMPlayer.getIsBuffedHunterOnFinalDeath(), true));
+                    UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " lost all their lives and is now a hunter!"));
                 } else
                 {
                     MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(speedRunner, this.wasKilledByHunter));
+                    UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " lost all their lives is now a spectator!"));
                 }
 
                 if (UMPlayer.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners

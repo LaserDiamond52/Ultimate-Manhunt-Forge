@@ -25,8 +25,7 @@ import java.util.function.BiConsumer;
 @AutoRegisterCapability
 public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 {
-    private static final ResourceLocation ACTIVE_MODIFIER = UltimateManhunt.fromUMPath("attribute.active_hunter");
-
+    private static final UUID HUNTER_MODIFIER_UUID = UUID.fromString("23b44aa5-9990-4e46-b3e6-6df04d3ab1bd");
     public static final int MIN_LIVES = 0;
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
@@ -85,12 +84,12 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     public static HashMultimap<Attribute, AttributeModifier> createHunterAttributes()
     {
         HashMultimap<Attribute, AttributeModifier> ret = HashMultimap.create();
-        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(ACTIVE_MODIFIER.toString(), 0.5, AttributeModifier.Operation.MULTIPLY_BASE));
-        ret.put(Attributes.ARMOR, new AttributeModifier(ACTIVE_MODIFIER.toString(), 5, AttributeModifier.Operation.ADDITION));
+        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_health", 0.5, AttributeModifier.Operation.MULTIPLY_BASE));
+        ret.put(Attributes.ARMOR, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_armor", 5, AttributeModifier.Operation.ADDITION));
 
-        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(ACTIVE_MODIFIER.toString(), 0.1, AttributeModifier.Operation.MULTIPLY_BASE));
+        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_movement_speed", 0.1, AttributeModifier.Operation.MULTIPLY_BASE));
 
-        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(ACTIVE_MODIFIER.toString(), 0.25, AttributeModifier.Operation.MULTIPLY_BASE));
+        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_attack_damage", 0.25, AttributeModifier.Operation.MULTIPLY_BASE));
 
         return ret;
     }
