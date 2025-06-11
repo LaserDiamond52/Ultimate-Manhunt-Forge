@@ -53,8 +53,6 @@ public final class UMGameSettingProfileConfig extends JsonConfig
         }
     }
 
-    // TODO: Use default settings if key returns null from file
-
     public int getHunterGracePeriodTicks()
     {
         if (this.isJsonNotNull("hunter_grace_period_ticks"))

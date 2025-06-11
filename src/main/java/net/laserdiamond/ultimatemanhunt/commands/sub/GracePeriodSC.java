@@ -1,43 +1,39 @@
-package net.laserdiamond.ultimatemanhunt.commands;
+package net.laserdiamond.ultimatemanhunt.commands.sub;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Command used for configuring the duration of the grace periods for hunters and speed runners
- * <p>Hunter grace period happens at the start of the game, giving speed runners a head-start</p>
- * <p>Speed runner grace period happens when they respawn after being killed by a hunter (or dying near a hunter)</p>
- */
-public class SetGracePeriodCommand {
+public class GracePeriodSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
-    {
-        dispatcher.register(
-                Commands.literal("grace_period")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.literal("hunter")
-                                        .then(
-                                                Commands.argument("durationTicks", IntegerArgumentType.integer(1))
-                                                        .executes(commandContext -> setGracePeriod(commandContext, Team.HUNTERS, IntegerArgumentType.getInteger(commandContext, "durationTicks")))
-                                        )
-                        )
-                        .then(
-                                Commands.literal("speed_runner")
-                                        .then(
-                                                Commands.argument("durationTicks", IntegerArgumentType.integer(1))
-                                                        .executes(commandContext -> setGracePeriod(commandContext, Team.SPEED_RUNNERS, IntegerArgumentType.getInteger(commandContext, "durationTicks")))
-                                        )
-                        )
-        );
+    public GracePeriodSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder) {
+        super(argumentBuilder
+                .then(
+                        Commands.literal("gracePeriod")
+                                .requires(UltimateManhunt::hasPermission)
+                                .then(
+                                        Commands.literal("hunter")
+                                                .then(
+                                                        Commands.argument("durationTicks", IntegerArgumentType.integer(1))
+                                                                .executes(commandContext -> setGracePeriod(commandContext, Team.HUNTERS, IntegerArgumentType.getInteger(commandContext, "durationTicks")))
+                                                )
+                                )
+                                .then(
+                                        Commands.literal("speed_runner")
+                                                .then(
+                                                        Commands.argument("durationTicks", IntegerArgumentType.integer(1))
+                                                                .executes(commandContext -> setGracePeriod(commandContext, Team.SPEED_RUNNERS, IntegerArgumentType.getInteger(commandContext, "durationTicks")))
+                                                )
+                                )
+                ));
     }
 
     private static void logGracePeriodChange(CommandSourceStack source, @NotNull Team team, int newDuration)

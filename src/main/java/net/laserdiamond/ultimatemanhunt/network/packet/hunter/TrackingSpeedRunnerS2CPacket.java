@@ -2,6 +2,7 @@ package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientTrackedSpeedRunner;
+import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
@@ -15,6 +16,11 @@ import java.util.UUID;
  * Packet sent from the SERVER to the CLIENT that updates the tracking position of a speed runner for a hunter
  */
 public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
+
+    public static void sendNonTracking(Player player)
+    {
+        UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player);
+    }
 
     private final boolean speedRunnersPresent;
     private final String playerName;

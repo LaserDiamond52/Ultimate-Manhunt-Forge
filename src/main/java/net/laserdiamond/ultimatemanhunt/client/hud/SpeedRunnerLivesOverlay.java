@@ -3,7 +3,6 @@ package net.laserdiamond.ultimatemanhunt.client.hud;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientHardcore;
-import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientSpeedRunnerGracePeriod;
 import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientSpeedRunnerMaxLives;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.DeltaTracker;
@@ -34,20 +33,36 @@ public final class SpeedRunnerLivesOverlay implements UMHUDOverlay {
             int drawX = (guiGraphics.guiWidth() / 2 - 104);
             int drawY = (guiGraphics.guiHeight() - 39);
 
-            for (int i = 0; i < ClientSpeedRunnerMaxLives.getMaxLives(); i++)
+            if (ClientSpeedRunnerMaxLives.getMaxLives() <= 5)
             {
-                guiGraphics.blitSprite(SPEED_RUNNER_EMPTY_HEART_TEXTURE, drawX, drawY - (i * 10), 9, 9);
-                if (i < lives)
+                for (int i = 0; i < ClientSpeedRunnerMaxLives.getMaxLives(); i++)
                 {
-                    if (ClientHardcore.isHardcore()) // Hardcore?
+                    guiGraphics.blitSprite(SPEED_RUNNER_EMPTY_HEART_TEXTURE, drawX, drawY - (i * 10), 9, 9);
+                    if (i < lives)
                     {
-                        guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_HARDCORE_TEXTURE, drawX, drawY - (i * 10), 9, 9);
-                    } else // Not hardcore
-                    {
-                        guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_TEXTURE, drawX, drawY - (i * 10), 9, 9);
+                        if (ClientHardcore.isHardcore()) // Hardcore?
+                        {
+                            guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_HARDCORE_TEXTURE, drawX, drawY - (i * 10), 9, 9);
+                        } else // Not hardcore
+                        {
+                            guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_TEXTURE, drawX, drawY - (i * 10), 9, 9);
+                        }
                     }
                 }
+            } else
+            {
+                guiGraphics.drawCenteredString(Minecraft.getInstance().font, Component.literal("x" + umPlayer.getLives()), drawX, drawY, ChatFormatting.WHITE.getColor());
+                drawX -= 20;
+                guiGraphics.blitSprite(SPEED_RUNNER_EMPTY_HEART_TEXTURE, drawX, drawY, 9, 9);
+                if (ClientHardcore.isHardcore()) // Hardcore?
+                {
+                    guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_HARDCORE_TEXTURE, drawX, drawY, 9, 9);
+                } else // Not hardcore
+                {
+                    guiGraphics.blitSprite(SPEED_RUNNER_FULL_HEART_TEXTURE, drawX, drawY, 9, 9);
+                }
             }
+
 
             Component speedRunnerGracePeriodComponent = getSpeedRunnerGracePeriodComponent(gameTime, umPlayer.getGracePeriodTimeStamp());
 

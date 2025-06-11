@@ -1,29 +1,28 @@
-package net.laserdiamond.ultimatemanhunt.commands.gamerule;
+package net.laserdiamond.ultimatemanhunt.commands.sub.gamerule;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-/**
- * Command used to specify if speed runners should become buffed hunters after losing their last life
- */
-public class SetBuffedHunterOnFinalDeathCommand {
-
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+public final class BuffedHunterOnFinalDeathSC extends UltimateManhuntCommands.SubCommand
+{
+    public BuffedHunterOnFinalDeathSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder)
     {
-        dispatcher.register(
-                Commands.literal("buffed_hunter_on_final_death")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.argument("isBuffedHunter", BoolArgumentType.bool())
-                                        .executes(commandContext -> setIsBuffedHunterOnFinalDeath(commandContext.getSource(), BoolArgumentType.getBool(commandContext, "isBuffedHunter")))
-                        )
-        );
+        super(argumentBuilder.then(
+                        Commands.literal("gamerule")
+                                .then(
+                                        Commands.literal("buffedHuntersOnFinalDeath")
+                                                .then(
+                                                        Commands.argument("isBuffedHunter", BoolArgumentType.bool())
+                                                                .executes(commandContext -> setIsBuffedHunterOnFinalDeath(commandContext.getSource(), BoolArgumentType.getBool(commandContext, "isBuffedHunter")))
+                                                )
+                                )
+                ));
     }
 
     private static void logBuffedHunterOnFinalDeathUpdate(CommandSourceStack sourceStack, boolean isBuffedOnDeath)
@@ -31,6 +30,9 @@ public class SetBuffedHunterOnFinalDeathCommand {
         if (isBuffedOnDeath)
         {
             sourceStack.sendSuccess(() -> Component.literal("Set Speed Runners to become buffed hunters on their final death"), true);
+        } else
+        {
+            sourceStack.sendSuccess(() -> Component.literal("Set Speed Runners to not become buffed hunters on their final death"), true);
             return;
         }
         sourceStack.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change game rules when a game has been started. " +

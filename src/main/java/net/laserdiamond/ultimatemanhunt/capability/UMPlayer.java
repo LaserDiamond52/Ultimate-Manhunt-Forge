@@ -32,7 +32,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     private static final ResourceLocation ACTIVE_MODIFIER = UltimateManhunt.fromUMPath("attribute.active_hunter");
 
     public static final int MIN_LIVES = 0;
-    public static final int MAX_LIVES = 5;
+    public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
     private static boolean buffedHunterOnFinalDeath = false;
 

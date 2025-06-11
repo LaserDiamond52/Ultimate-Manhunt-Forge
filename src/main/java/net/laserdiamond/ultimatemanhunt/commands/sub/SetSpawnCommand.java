@@ -1,11 +1,11 @@
-package net.laserdiamond.ultimatemanhunt.commands;
+package net.laserdiamond.ultimatemanhunt.commands.sub;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.laserutils.util.raycast.ServerRayCast;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -21,26 +21,24 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-public class SetUMSpawnCommand {
+public final class SetSpawnCommand extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
-    {
-        dispatcher.register(
-                Commands.literal("um_spawn_location")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.argument("location", Vec2Argument.vec2())
-                                        .executes(commandContext -> modifyRMSpawn(commandContext, Vec2Argument.getVec2(commandContext, "location"), true))
-                                        .then(
-                                                Commands.argument("moveWorldSpawn", BoolArgumentType.bool())
-                                                        .executes(commandContext -> modifyRMSpawn(commandContext, Vec2Argument.getVec2(commandContext, "location"), BoolArgumentType.getBool(commandContext, "moveWorldSpawn")))
-                                        )
-                        )
-
-        );
+    public SetSpawnCommand(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder) {
+        super(argumentBuilder
+                .then(
+                        Commands.literal("setSpawn")
+                                .then(
+                                        Commands.argument("location", Vec2Argument.vec2())
+                                                .executes(commandContext -> modifySpawn(commandContext, Vec2Argument.getVec2(commandContext, "location"), true))
+                                                .then(
+                                                        Commands.argument("moveWorldSpawn", BoolArgumentType.bool())
+                                                                .executes(commandContext -> modifySpawn(commandContext, Vec2Argument.getVec2(commandContext, "location"), BoolArgumentType.getBool(commandContext, "moveWorldSpawn")))
+                                                )
+                                )
+                ));
     }
 
-    private static int modifyRMSpawn(CommandContext<CommandSourceStack> commandContext, Vec2 pos, boolean moveWorldSpawn)
+    private static int modifySpawn(CommandContext<CommandSourceStack> commandContext, Vec2 pos, boolean moveWorldSpawn)
     {
         int i = 0;
 

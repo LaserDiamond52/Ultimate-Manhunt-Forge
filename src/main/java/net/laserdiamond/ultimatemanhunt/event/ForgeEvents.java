@@ -2,17 +2,24 @@ package net.laserdiamond.ultimatemanhunt.event;
 
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.api.event.RegisterManhuntSubCommandEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerLifeLossEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.*;
-import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetBuffedHunterOnFinalDeathCommand;
-import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetFriendlyFireCommand;
-import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetHardcoreCommand;
-import net.laserdiamond.ultimatemanhunt.commands.gamerule.SetWindTorchesCommand;
-import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetDeadPlayerRoleCommand;
-import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetNewPlayerRoleCommand;
-import net.laserdiamond.ultimatemanhunt.commands.playerrole.SetPlayerRoleCommands;
+import net.laserdiamond.ultimatemanhunt.commands.sub.GameProfileSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.GracePeriodSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.SetGameStateSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.SetSpawnCommand;
+import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.AllowWindTorchesSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.BuffedHunterOnFinalDeathSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.SetFriendlyFireSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.SetHardcoreSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.lives.SetCurrentLivesSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.lives.SetMaxLivesSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.playerrole.SetCurrentPlayerRoleSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.playerrole.SetDeadPlayerRoleSC;
+import net.laserdiamond.ultimatemanhunt.commands.sub.playerrole.SetNewPlayerRoleSC;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.item.WindTorchItem;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
@@ -20,6 +27,7 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.RemainingPlayerCountS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
@@ -48,20 +56,47 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event)
     {
-        SetPlayerRoleCommands.register(event.getDispatcher());
-        UltimateManhuntGameCommands.register(event.getDispatcher());
-        SetFriendlyFireCommand.register(event.getDispatcher());
-        SetHardcoreCommand.register(event.getDispatcher());
-        SetGracePeriodCommand.register(event.getDispatcher());
-        SetRemainingSpeedRunnerLivesCommand.register(event.getDispatcher());
-        MaxSpeedRunnerLivesCommand.register(event.getDispatcher());
-        SetUMSpawnCommand.register(event.getDispatcher());
-        SetWindTorchesCommand.register(event.getDispatcher());
-        SetBuffedHunterOnFinalDeathCommand.register(event.getDispatcher());
-        UMGameProfileCommand.register(event.getDispatcher());
+//        SetPlayerRoleCommands.register(event.getDispatcher());
+//        UltimateManhuntGameCommands.register(event.getDispatcher());
+//        SetFriendlyFireCommand.register(event.getDispatcher());
+//        SetHardcoreCommand.register(event.getDispatcher());
+//        SetGracePeriodCommand.register(event.getDispatcher());
+//        SetRemainingSpeedRunnerLivesCommand.register(event.getDispatcher());
+//        MaxSpeedRunnerLivesCommand.register(event.getDispatcher());
+//        SetUMSpawnCommand.register(event.getDispatcher());
+//        SetWindTorchesCommand.register(event.getDispatcher());
+//        SetBuffedHunterOnFinalDeathCommand.register(event.getDispatcher());
+//        UMGameProfileCommand.register(event.getDispatcher());
+//
+//        SetNewPlayerRoleCommand.register(event.getDispatcher());
+//        SetDeadPlayerRoleCommand.register(event.getDispatcher());
 
-        SetNewPlayerRoleCommand.register(event.getDispatcher());
-        SetDeadPlayerRoleCommand.register(event.getDispatcher());
+        MinecraftForge.EVENT_BUS.post(new RegisterManhuntSubCommandEvent(event));
+        UltimateManhuntCommands.register(event.getDispatcher());
+    }
+
+    @SubscribeEvent
+    public static void registerSubCommands(RegisterManhuntSubCommandEvent event)
+    {
+        event.registerSubCommand(UltimateManhunt.fromUMPath("friendly_fire"), SetFriendlyFireSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("hardcore"), SetHardcoreSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("buffed_hunters_on_final_death"), BuffedHunterOnFinalDeathSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("allow_wind_torches"), AllowWindTorchesSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("dead_player_roles"), SetDeadPlayerRoleSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("new_player_roles"), SetNewPlayerRoleSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("current_player_roles"), SetCurrentPlayerRoleSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("max_lives"), SetMaxLivesSC::new);
+        event.registerSubCommand(UltimateManhunt.fromUMPath("current_lives"), SetCurrentLivesSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("game_state"), SetGameStateSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("game_profile"), GameProfileSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("set_spawn"), SetSpawnCommand::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("grace_period"), GracePeriodSC::new);
     }
 
     @SubscribeEvent
@@ -132,10 +167,7 @@ public class ForgeEvents {
     {
         for (Player playerHunter : UMPlayer.getHunters(false)) // Loop through all hunters
         {
-            if (UMGame.isNearHunter(playerSpeedRunner, playerHunter))
-            {
-                return true;
-            }
+            return UMGame.isNearHunter(playerSpeedRunner, playerHunter);
         }
         return false;
     }
@@ -324,6 +356,8 @@ public class ForgeEvents {
             // Player has just respawned. Set their grace period time stamp if they were previously killed by a hunter
             player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
+                // Assume the player is not near a hunter anymore
+                SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
                 if (umPlayer.isWasLastKilledByHunter())
                 {
                     long timeStamp = UMGame.getCurrentGameTime() + UMGame.getSpeedRunnerGracePeriod();

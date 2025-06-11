@@ -23,7 +23,7 @@ public final class SpeedRunnerHunterDetectionOverlay implements UMHUDOverlay {
 
         if (umPlayer.isSpeedRunner())
         {
-            if ((distanceFromHunter < UMGame.HUNTER_DETECTION_RANGE) && (distanceFromHunter != 0) && !umPlayer.isSpeedRunnerOnGracePeriodClient()) // Player has to be in hunter detection range, distance cannot be 0, and must not be on grace period
+            if ((distanceFromHunter > -1) && (distanceFromHunter < UMGame.HUNTER_DETECTION_RANGE) && !umPlayer.isSpeedRunnerOnGracePeriodClient()) // Player has to be in hunter detection range, distance cannot be 0, and must not be on grace period
             {
                 float red = -(distanceFromHunter / 110F) + 0.9F;
 

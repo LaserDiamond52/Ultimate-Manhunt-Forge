@@ -1,27 +1,30 @@
-package net.laserdiamond.ultimatemanhunt.commands.gamerule;
+package net.laserdiamond.ultimatemanhunt.commands.sub.gamerule;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-public class SetWindTorchesCommand {
+public final class AllowWindTorchesSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+    public AllowWindTorchesSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder)
     {
-        dispatcher.register(
-                Commands.literal("um_wind_torches")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.argument("enableWindTorches", BoolArgumentType.bool())
-                                        .executes(commandContext -> setWindTorches(commandContext, BoolArgumentType.getBool(commandContext, "enableWindTorches")))
-                        )
-        );
+        super(argumentBuilder.then(
+                Commands.literal("gamerule")
+                                .then(
+                                        Commands.literal("allowWindTorches")
+                                        .then(
+                                                Commands.argument("enableWindTorches", BoolArgumentType.bool())
+                                                        .executes(commandContext -> setWindTorches(commandContext, BoolArgumentType.getBool(commandContext, "enableWindTorches")))
+                                        )
+                                )
+
+        ));
     }
 
     private static int setWindTorches(CommandContext<CommandSourceStack> commandContext, boolean enabled)

@@ -29,7 +29,7 @@ public final class GracePeriodArmorModel<T extends LivingEntity> extends Humanoi
         return LayerDefinition.create(humanoidMesh, 64, 64);
     }
 
-    public static <T extends LivingEntity, M extends HumanoidModel<T>> void render(M parentModel, GracePeriodArmorModel<T> model, ResourceLocation texture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch, int color)
+    public static <T extends LivingEntity, M extends HumanoidModel<T>> void render(M parentModel, GracePeriodArmorModel<T> model, ResourceLocation texture, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch)
     {
         poseStack.pushPose();
 
@@ -57,8 +57,7 @@ public final class GracePeriodArmorModel<T extends LivingEntity> extends Humanoi
 
         model.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         VertexConsumer vertexConsumer = bufferSource.getBuffer(model.renderType(texture));
-//                .setColor(FastColor.ARGB32.color(32, color));
-        model.renderToBuffer(poseStack, vertexConsumer, packedLight, OverlayTexture.NO_OVERLAY);
+        model.renderToBuffer(poseStack, vertexConsumer, packedLight, OverlayTexture.NO_OVERLAY, -10065409);
         poseStack.popPose();
     }
 
