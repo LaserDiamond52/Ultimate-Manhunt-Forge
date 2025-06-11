@@ -4,7 +4,6 @@ import net.laserdiamond.ultimatemanhunt.api.event.HuntersReleasedEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
-import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntGameCommands;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
@@ -15,6 +14,7 @@ import net.laserdiamond.ultimatemanhunt.network.packet.hunter.TrackingSpeedRunne
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -311,6 +311,11 @@ public class UMGame {
         return deadSpeedRunnerRole;
     }
 
+    public static void sendMessageToAllPlayers(MinecraftServer minecraftServer, Component component)
+    {
+        minecraftServer.getPlayerList().getPlayers().forEach(serverPlayer -> serverPlayer.sendSystemMessage(component));
+    }
+
     @SubscribeEvent
     public static void onServerTickPre(TickEvent.ServerTickEvent.Pre event)
     {
@@ -344,7 +349,13 @@ public class UMGame {
 
         player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
-            if (umPlayer.isHunter())
+            if (umPlayer.isSpectator())
+            {
+                if (player instanceof ServerPlayer serverPlayer)
+                {
+                    serverPlayer.setGameMode(GameType.SPECTATOR);
+                }
+            } else if (umPlayer.isHunter())
             {
                 if (State.isGameRunning())
                 {
@@ -364,7 +375,13 @@ public class UMGame {
                         return;
                     }
                     // Track chosen player
-                    for (Player speedRunnerPlayer : UMPlayer.getAvailableSpeedRunners(player))
+                    List<Player> speedRunners = UMPlayer.getAvailableSpeedRunners(player);
+                    if (speedRunners.isEmpty())
+                    {
+                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
+                        return;
+                    }
+                    for (Player speedRunnerPlayer : speedRunners)
                     {
                         if (UMPlayer.isSpeedRunnerOnGracePeriodServer(player))
                         {
@@ -372,7 +389,7 @@ public class UMGame {
                         }
                         if (!player.isAlive()) // Is the hunter dead?
                         {
-                            UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(0), speedRunnerPlayer); // Hunter is dead
+                            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(speedRunnerPlayer); // Hunter is dead
                             continue; // Skip to next iteration. Shouldn't notify player if hunter is dead
                         }
                         float distance = player.distanceTo(speedRunnerPlayer);
@@ -408,30 +425,30 @@ public class UMGame {
                     MinecraftServer mcServer = player.getServer();
                     if (mcServer == null) // Is server null?
                     {
-                        UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
+                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
                         return;
                     }
                     Player trackedPlayer = mcServer.getPlayerList().getPlayer(trackedPlayerUUID); // Player to track
                     if (trackedPlayer == null) // Is there a player being tracked?
                     {
-                        UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // No player being tracked.
+                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
                         return;
                     }
                     if (!trackedPlayer.level().isClientSide) // On server for tracked player?
                     {
                         if (!trackedPlayer.level().dimension().equals(player.level().dimension())) // Are players in different dimensions?
                         {
-                            UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player and Hunter are not in the same dimension
+                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
                             return;
                         }
                         if (UMPlayer.isSpeedRunnerOnGracePeriodServer(trackedPlayer)) // Is the speed runner on grace period?
                         {
-                            UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is on grace period
+                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
                             return;
                         }
                         if (!trackedPlayer.isAlive()) // Is the tracked player alive?
                         {
-                            UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Tracked Player is dead
+                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
                             return;
                         }
                         LazyOptional<UMPlayer> trackedPlayerCap = trackedPlayer.getCapability(UMPlayerCapability.UM_PLAYER); // Get hunter capability of tracked player
@@ -440,7 +457,7 @@ public class UMGame {
                             UMPlayer trackedPlayerHunter = trackedPlayerCap.orElse(new UMPlayer(trackedPlayerUUID));
                             if (!trackedPlayerHunter.isSpeedRunner()) // Is the tracked player NOT a speed runner (roles can change)
                             {
-                                UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player); // Player is a hunter. Do not track
+                                TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // Player is a hunter. Do not track
                                 return;
                             }
                         }
@@ -507,12 +524,6 @@ public class UMGame {
 //                        }
 //                    }
                 }
-            } else if (umPlayer.isSpectator())
-            {
-                if (player instanceof ServerPlayer serverPlayer)
-                {
-                    serverPlayer.setGameMode(GameType.SPECTATOR);
-                }
             }
         });
     }
@@ -558,25 +569,25 @@ public class UMGame {
     public enum State
     {
         /**
-         * A Manhunt game has started. This state is reached when the Manhunt game has been started using the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}
+         * A Manhunt game has started. This state is reached when the Manhunt game has been started using the {@linkplain net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands Manhunt Game Command}
          */
         STARTED,
 
         /**
-         * A Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after resuming the game using the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}
+         * A Manhunt game is currently in progress. This state is reached if the game was previously in a {@linkplain #PAUSED paused} state after resuming the game using the {@linkplain net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands Manhunt Game Command}
          */
         IN_PROGRESS,
 
         /**
          * A Manhunt game is on pause.
-         * This state is reached if the game is put on pause by the use of the {@linkplain UltimateManhuntGameCommands Manhunt Game Command}.
+         * This state is reached if the game is put on pause by the use of the {@linkplain net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands Manhunt Game Command}.
          * <p>While the Manhunt game is in this state, Speed Runners cannot lose lives, the Ender Dragon cannot be damaged, and Hunters cannot track speed runners</p>
          */
         PAUSED,
 
         /**
          * A Manhunt game is not currently in progress yet, or has not been started.
-         * This state is reached either through the use of the {@linkplain UltimateManhuntGameCommands Manhunt Game Command},
+         * This state is reached either through the use of the {@linkplain net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands Manhunt Game Command},
          * or if the {@linkplain UltimateManhuntGameStateEvent.End End Game Event} is fired
          */
         NOT_STARTED;
@@ -615,6 +626,33 @@ public class UMGame {
                 }
             }
             return null;
+        }
+
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
+
+        public String getAsName()
+        {
+            String ret = this.toString().substring(0,1).toUpperCase() + this.toString().substring(1);
+            ret = ret.replace("_", " ");
+            boolean foundSpace = false;
+            for (int i = 0; i < ret.length(); i++)
+            {
+                String s = ret.substring(i, Math.min(i + 1, ret.length()));
+                if (s.equals(" "))
+                {
+                    foundSpace = true;
+                    continue;
+                }
+                if (foundSpace)
+                {
+                    ret = ret.replace(" " + s, " " + s.toUpperCase());
+                    foundSpace = false;
+                }
+            }
+            return ret;
         }
     }
 

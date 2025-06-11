@@ -37,7 +37,8 @@ public class UMClientModEvents {
     public static void onClientSetUp(FMLClientSetupEvent event)
     {
         new LUOverlayManager()
-                .registerConditionalOverlayFirst(new LayeredDraw()
+                .registerConditionalOverlayFirst(
+                        new LayeredDraw()
                                 .add(new SpeedRunnerLivesOverlay())
                                 .add(new UpperScreenTextOverlay())
                                 .add(new HunterTrackerOverlay()), () -> !Minecraft.getInstance().options.hideGui)

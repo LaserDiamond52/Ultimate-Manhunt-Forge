@@ -1,12 +1,12 @@
-package net.laserdiamond.ultimatemanhunt.commands;
+package net.laserdiamond.ultimatemanhunt.commands.sub;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.laserdiamond.ultimatemanhunt.util.file.UMGameSettingProfileConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -19,44 +19,40 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.List;
 
-/**
- * Command for starting, stopping, pausing, and resuming the Manhunt Game
- */
-public class UltimateManhuntGameCommands {
+public final class SetGameStateSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
-    {
-        dispatcher.register(
-                Commands.literal("ultimate_manhunt")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.literal("start")
-                                        .executes(commandContext -> changeGameState(commandContext, UMGame.State.STARTED))
-                                        .then(
-                                                Commands.argument("game_profile_name", StringArgumentType.string())
-                                                        .executes(commandContext -> startGameFromProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
-                                        )
-                        )
-                        .then(
-                                Commands.literal("pause")
-                                        .executes(commandContext -> changeGameState(commandContext, UMGame.State.PAUSED))
-                        )
-                        .then(
-                                Commands.literal("resume")
-                                        .executes(commandContext -> changeGameState(commandContext, UMGame.State.IN_PROGRESS))
-                        )
-                        .then(
-                                Commands.literal("stop")
-                                        .executes(commandContext -> changeGameState(commandContext, UMGame.State.NOT_STARTED))
-                        )
-        );
+    public SetGameStateSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder) {
+        super(argumentBuilder
+                .then(
+                        Commands.literal("gameState")
+                                .then(
+                                        Commands.literal("start")
+                                                .executes(commandContext -> changeGameState(commandContext, UMGame.State.STARTED))
+                                                .then(
+                                                        Commands.argument("game_profile_name", StringArgumentType.string())
+                                                                .executes(commandContext -> startGameFromProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
+                                                )
+                                )
+                                .then(
+                                        Commands.literal("pause")
+                                                .executes(commandContext -> changeGameState(commandContext, UMGame.State.PAUSED))
+                                )
+                                .then(
+                                        Commands.literal("resume")
+                                                .executes(commandContext -> changeGameState(commandContext, UMGame.State.IN_PROGRESS))
+                                )
+                                .then(
+                                        Commands.literal("stop")
+                                                .executes(commandContext -> changeGameState(commandContext, UMGame.State.NOT_STARTED))
+                                )
+                ));
     }
 
     private static void logGameStateChange(CommandSourceStack source, UMGame.State newGameState, boolean successful)
     {
         if (successful)
         {
-            source.sendSuccess(() -> Component.literal("Set the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.WHITE + " to " + ChatFormatting.AQUA + newGameState.toString()), true);
+            source.sendSuccess(() -> Component.literal("Set the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.WHITE + " to " + ChatFormatting.AQUA + newGameState.getAsName()), true);
 
             for (ServerPlayer player : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers())
             {
@@ -70,7 +66,7 @@ public class UltimateManhuntGameCommands {
             }
         } else
         {
-            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + UMGame.getCurrentGameState().toString() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.toString()));
+            source.sendFailure(Component.literal(ChatFormatting.RED + "Cannot change the current state of the " + ChatFormatting.GOLD + "Ultimate Manhunt Game" + ChatFormatting.RED + " from " + ChatFormatting.AQUA + UMGame.getCurrentGameState().getAsName() + ChatFormatting.RED + " to " + ChatFormatting.AQUA + newGameState.getAsName()));
         }
     }
 
@@ -139,5 +135,4 @@ public class UltimateManhuntGameCommands {
 
         return i;
     }
-
 }

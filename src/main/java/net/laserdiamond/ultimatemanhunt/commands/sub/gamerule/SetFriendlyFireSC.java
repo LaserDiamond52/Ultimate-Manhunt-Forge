@@ -1,30 +1,28 @@
-package net.laserdiamond.ultimatemanhunt.commands.gamerule;
+package net.laserdiamond.ultimatemanhunt.commands.sub.gamerule;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-/**
- * Command used to specify if friendly fire should be allowed between players of the same team
- */
-public class SetFriendlyFireCommand {
+public final class SetFriendlyFireSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+    public SetFriendlyFireSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder)
     {
-        dispatcher.register(
-                Commands.literal("um_friendly_fire")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.argument("isFriendlyFire", BoolArgumentType.bool())
-                                        .executes(commandContext -> setFriendlyFire(commandContext, BoolArgumentType.getBool(commandContext, "isFriendlyFire")))
-                        )
-        );
+        super(argumentBuilder.then(
+                Commands.literal("gamerule")
+                                .then(Commands.literal("setFriendlyFire")
+                                        .then(
+                                                Commands.argument("isFriendlyFire", BoolArgumentType.bool())
+                                                        .executes(commandContext -> setFriendlyFire(commandContext, BoolArgumentType.getBool(commandContext, "isFriendlyFire")))
+                                        ))
+
+                ));
     }
 
     private static void logFriendlyFireUpdate(CommandSourceStack source, boolean isFriendlyFire)

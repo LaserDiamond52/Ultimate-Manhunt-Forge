@@ -32,13 +32,14 @@ public final class SpeedRunnerGracePeriodLayer extends RenderLayer<AbstractClien
     {
         // We want to check if the player was last killed by the hunter and if the player is a hunter through the capability because it is saved TO THE PLAYER
         // The Client values are results from the packet. Checking purely with those will render the shield on the client for all players
+
         player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
         {
             if (umPlayer.isSpeedRunner() && umPlayer.isWasLastKilledByHunter())
             {
                 if (umPlayer.isSpeedRunnerOnGracePeriodClient())
                 {
-                    GracePeriodArmorModel.render(this.getParentModel(), this.gracePeriodArmorModel, TEXTURE, poseStack, multiBufferSource, packedLight, player, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch, 16777215);
+                    GracePeriodArmorModel.render(this.getParentModel(), this.gracePeriodArmorModel, TEXTURE, poseStack, multiBufferSource, packedLight, player, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
                 }
             }
         });

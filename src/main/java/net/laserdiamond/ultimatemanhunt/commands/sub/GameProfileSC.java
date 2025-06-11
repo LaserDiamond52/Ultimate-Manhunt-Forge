@@ -1,39 +1,38 @@
-package net.laserdiamond.ultimatemanhunt.commands;
+package net.laserdiamond.ultimatemanhunt.commands.sub;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.laserdiamond.ultimatemanhunt.util.file.UMGameSettingProfileConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-public class UMGameProfileCommand {
+public final class GameProfileSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
-    {
-        dispatcher.register(
-                Commands.literal("um_game_profiles")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                                Commands.argument("game_profile_name", StringArgumentType.string())
-                                        .then(
-                                                Commands.literal("load")
-                                                        .executes(commandContext -> loadGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
-                                        )
-                                        .then(
-                                                Commands.literal("save")
-                                                        .executes(commandContext -> saveGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
-                                        )
-                                        .then(
-                                                Commands.literal("delete")
-                                                        .executes(commandContext -> deleteGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
-                                        )
-                        )
-        );
+    public GameProfileSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder) {
+        super(argumentBuilder
+                .then(
+                        Commands.literal("gameProfiles")
+                                .then(
+                                        Commands.argument("game_profile_name", StringArgumentType.string())
+                                                .then(
+                                                        Commands.literal("load")
+                                                                .executes(commandContext -> loadGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
+                                                )
+                                                .then(
+                                                        Commands.literal("save")
+                                                                .executes(commandContext -> saveGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
+                                                )
+                                                .then(
+                                                        Commands.literal("delete")
+                                                                .executes(commandContext -> deleteGameProfile(commandContext, StringArgumentType.getString(commandContext, "game_profile_name")))
+                                                )
+                                )
+                ));
     }
 
     private static int loadGameProfile(CommandContext<CommandSourceStack> commandContext, String profileName)
@@ -60,7 +59,6 @@ public class UMGameProfileCommand {
         int i = 0;
         if (UMGameSettingProfileConfig.doesGameProfileFileExist(profileName))
         {
-            new UMGameSettingProfileConfig(profileName).saveSettingsToFile();
             commandContext.getSource().sendSuccess(() -> Component.literal("Overwrote settings for Game Profile \"" + profileName + "\""), true);
             i++;
             return i;

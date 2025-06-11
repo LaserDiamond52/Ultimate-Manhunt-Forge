@@ -45,7 +45,7 @@ public class HuntersReleasedEvent extends Event implements PlayerGameSpawner {
                     List<Player> availablePlayerSpeedRunners = UMPlayer.getAvailableSpeedRunners(player);
                     if (!availablePlayerSpeedRunners.isEmpty())
                     {
-                        Player trackedPlayer = availablePlayerSpeedRunners.get(0);
+                        Player trackedPlayer = availablePlayerSpeedRunners.getFirst();
                         umPlayer.setPlayerToTrack(0, trackedPlayer)
                                 .sendUpdateFromServerToSelf(player);
                     }

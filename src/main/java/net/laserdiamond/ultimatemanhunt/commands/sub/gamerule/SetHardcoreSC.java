@@ -1,31 +1,30 @@
-package net.laserdiamond.ultimatemanhunt.commands.gamerule;
+package net.laserdiamond.ultimatemanhunt.commands.sub.gamerule;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.laserdiamond.ultimatemanhunt.UMGame;
-import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
-/**
- * Command used to determine if the Manhunt game should be hardcore
- * <p>When a Manhunt game is set to hardcore, any death removes a life from players that are speed runners</p>
- */
-public class SetHardcoreCommand {
+public final class SetHardcoreSC extends UltimateManhuntCommands.SubCommand {
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
+    public SetHardcoreSC(LiteralArgumentBuilder<CommandSourceStack> argumentBuilder)
     {
-        dispatcher.register(
-                Commands.literal("um_hardcore")
-                        .requires(UltimateManhunt::hasPermission)
-                        .then(
-                            Commands.argument("isHardcore", BoolArgumentType.bool())
-                                    .executes(commandContext -> setHardcore(commandContext, BoolArgumentType.getBool(commandContext, "isHardcore")))
-                        )
-        );
+        super(argumentBuilder.then(
+                Commands.literal("gamerule")
+                                .then(
+                                        Commands.literal("setHardcore")
+                                        .then(
+                                                Commands.argument("isHardcore", BoolArgumentType.bool())
+                                                        .executes(commandContext -> setHardcore(commandContext, BoolArgumentType.getBool(commandContext, "isHardcore")))
+                                        )
+                                )
+
+        ));
     }
 
     private static void logHardcoreUpdate(CommandSourceStack source, boolean isHardcore)

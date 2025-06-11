@@ -2,13 +2,25 @@ package net.laserdiamond.ultimatemanhunt.network.packet.speedrunner;
 
 import net.laserdiamond.laserutils.network.NetworkPacket;
 import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientDistanceFromHunter;
+import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 /**
  * Packet send from the SERVER to the CLIENT that tells speed runners how close they are to the hunter when within the hunter detection range.
  */
 public class SpeedRunnerDistanceFromHunterS2CPacket extends NetworkPacket {
+
+    public static void sendNotNearHunterAll()
+    {
+        UMPackets.sendToAllClients(new SpeedRunnerDistanceFromHunterS2CPacket(-1));
+    }
+
+    public static void sendNotNearHunterPlayer(Player player)
+    {
+        UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(-1), player);
+    }
 
     private final float distance;
 
