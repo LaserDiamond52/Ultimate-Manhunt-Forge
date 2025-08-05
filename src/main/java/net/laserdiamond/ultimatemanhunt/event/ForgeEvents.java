@@ -43,12 +43,17 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.forgespi.language.IModInfo;
+
+import java.util.List;
 
 @Mod.EventBusSubscriber(modid = UltimateManhunt.MODID)
 public class ForgeEvents {
@@ -58,6 +63,7 @@ public class ForgeEvents {
     {
         MinecraftForge.EVENT_BUS.post(new RegisterManhuntSubCommandEvent(event));
         UltimateManhuntCommands.register(event.getDispatcher());
+        ResetHunterTrackerCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -245,7 +251,6 @@ public class ForgeEvents {
         {
             return;
         }
-
         UMPackets.sendToPlayer(new GameStateS2CPacket(UMGame.getCurrentGameState()), player); // Let player know the current game state as soon as they join
         UMPackets.sendToPlayer(new HardcoreUpdateS2CPacket(UMGame.isHardcore()), player); // Let the player know whether hardcore is enabled
         UMPackets.sendToPlayer(new HunterGracePeriodDurationS2CPacket(UMGame.getHunterGracePeriod()), player); // Let the player know the hunter grace period
@@ -350,9 +355,28 @@ public class ForgeEvents {
                 {
                     umPlayer.setGracePeriodTimeStamp(0);
                 }
+                if (umPlayer.isBuffedHunter())
+                {
+                    player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes());
+                    player.setHealth(player.getMaxHealth());
+                }
                 umPlayer.sendUpdateFromServerToSelf(player);
             });
         }
+    }
+
+    @SubscribeEvent
+    public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event)
+    {
+        Player player = event.getEntity();
+        if (player.level().isClientSide)
+        {
+            return;
+        }
+        player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
+        {
+            umPlayer.sendUpdateFromServerToSelf(player);
+        });
     }
 
     @SubscribeEvent
@@ -384,30 +408,6 @@ public class ForgeEvents {
             });
         }
     }
-
-//    @SubscribeEvent
-//    public static void onGameStart(ReverseManhuntGameStateEvent.Start event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGamePause(ReverseManhuntGameStateEvent.Pause event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGameResume(ReverseManhuntGameStateEvent.Resume event)
-//    {
-//
-//    }
-//
-//    @SubscribeEvent
-//    public static void onGameEnd(ReverseManhuntGameStateEvent.End event)
-//    {
-//
-//    }
 
 
 
