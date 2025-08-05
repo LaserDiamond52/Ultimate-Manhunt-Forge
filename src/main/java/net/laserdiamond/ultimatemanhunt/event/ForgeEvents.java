@@ -73,6 +73,7 @@ public class ForgeEvents {
 
         MinecraftForge.EVENT_BUS.post(new RegisterManhuntSubCommandEvent(event));
         UltimateManhuntCommands.register(event.getDispatcher());
+        ResetHunterTrackerCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
@@ -369,6 +370,20 @@ public class ForgeEvents {
                 umPlayer.sendUpdateFromServerToSelf(player);
             });
         }
+    }
+
+    @SubscribeEvent
+    public static void onDimensionChange(PlayerEvent.PlayerChangedDimensionEvent event)
+    {
+        Player player = event.getEntity();
+        if (player.level().isClientSide)
+        {
+            return;
+        }
+        player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
+        {
+            umPlayer.sendUpdateFromServerToSelf(player);
+        });
     }
 
     @SubscribeEvent
