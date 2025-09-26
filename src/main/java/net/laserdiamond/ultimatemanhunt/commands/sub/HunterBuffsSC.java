@@ -2,6 +2,7 @@ package net.laserdiamond.ultimatemanhunt.commands.sub;
 
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -40,6 +41,13 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
                                                                 .then(
                                                                         Commands.argument("has_saturation", BoolArgumentType.bool())
                                                                                 .executes(context -> setSaturationBuff(context, BoolArgumentType.getBool(context, "has_saturation")))
+                                                                )
+                                                )
+                                                .then(
+                                                        Commands.literal("passiveRegen")
+                                                                .then(
+                                                                        Commands.argument("amount", FloatArgumentType.floatArg(0))
+                                                                                .executes(commandContext -> setPassiveRegenBuff(commandContext, FloatArgumentType.getFloat(commandContext, "amount")))
                                                                 )
                                                 )
                                 )
@@ -197,6 +205,19 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
             return i;
         }
         commandContext.getSource().sendSuccess(() -> Component.literal("Set hunter saturation to: " + hasSaturation), true);
+        i++;
+        return i;
+    }
+
+    private static int setPassiveRegenBuff(CommandContext<CommandSourceStack> commandContext, float amount)
+    {
+        int i = 0;
+        if (UMPlayer.setPassiveRegen(amount))
+        {
+            commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
+            return i;
+        }
+        commandContext.getSource().sendSuccess(() -> Component.literal("Set hunter passive regen to: " + amount), true);
         i++;
         return i;
     }
