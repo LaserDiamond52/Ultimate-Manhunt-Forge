@@ -30,6 +30,16 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
     private static boolean buffedHunterOnFinalDeath = false;
+    private static double maxHealthBonus = 0.5;
+    private static AttributeModifier.Operation maxHealthModifier = AttributeModifier.Operation.MULTIPLY_BASE;
+    private static double armorBonus = 5;
+    private static AttributeModifier.Operation armorBonusModifier = AttributeModifier.Operation.ADDITION;
+    private static double movementSpeedBonus = 0.1;
+    private static AttributeModifier.Operation movementSpeedBonusModifier = AttributeModifier.Operation.MULTIPLY_BASE;
+    private static double attackDamageBonus = 0.25;
+    private static AttributeModifier.Operation attackDamageBonusModifier = AttributeModifier.Operation.MULTIPLY_BASE;
+    private static boolean hasInfiniteSaturation = false;
+    private static float passiveRegen = 2;
 
     /**
      * @return The maximum amount of lives speed runners can currently hold
@@ -78,18 +88,168 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         return true;
     }
 
+    public static double getMaxHealthBonus()
+    {
+        return maxHealthBonus;
+    }
+
+    public static AttributeModifier.Operation getMaxHealthModifier()
+    {
+        return maxHealthModifier;
+    }
+
+    public static double getArmorBonus()
+    {
+        return armorBonus;
+    }
+
+    public static AttributeModifier.Operation getArmorBonusModifier()
+    {
+        return armorBonusModifier;
+    }
+
+    public static double getMovementSpeedBonus()
+    {
+        return movementSpeedBonus;
+    }
+
+    public static AttributeModifier.Operation getMovementSpeedBonusModifier()
+    {
+        return movementSpeedBonusModifier;
+    }
+
+    public static double getAttackDamageBonus()
+    {
+        return attackDamageBonus;
+    }
+
+    public static AttributeModifier.Operation getAttackDamageBonusModifier()
+    {
+        return attackDamageBonusModifier;
+    }
+
+    public static boolean setMaxHealthBonus(double newHealthBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        maxHealthBonus = newHealthBonus;
+        return true;
+    }
+
+    public static boolean setMaxHealthBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        maxHealthModifier = operation;
+        return true;
+    }
+
+    public static boolean setArmorBonus(double newArmorBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        armorBonus = newArmorBonus;
+        return true;
+    }
+
+    public static boolean setArmorBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        armorBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean setMovementSpeedBonus(double newSpeedBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementSpeedBonus = newSpeedBonus;
+        return true;
+    }
+
+    public static boolean setMovementSpeedBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementSpeedBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean setAttackDamageBonus(double newAttackDamage)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        attackDamageBonus = newAttackDamage;
+        return true;
+    }
+
+    public static boolean setAttackDamageBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        attackDamageBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean getHasInfiniteSaturation()
+    {
+        return hasInfiniteSaturation;
+    }
+
+    public static boolean setHasInfiniteSaturation(boolean infiniteSaturation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        hasInfiniteSaturation = infiniteSaturation;
+        return true;
+    }
+
+    public static boolean setPassiveRegen(float amount)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        passiveRegen = Math.max(0, amount);
+        return true;
+    }
+
+    public static float getPassiveRegen()
+    {
+        return passiveRegen;
+    }
+
     /**
      * @return A {@link HashMultimap} of {@linkplain Attribute attributes} and {@linkplain AttributeModifier attribute modifiers} to be applied to each Hunter
      */
     public static HashMultimap<Attribute, AttributeModifier> createHunterAttributes()
     {
         HashMultimap<Attribute, AttributeModifier> ret = HashMultimap.create();
-        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_health", 0.5, AttributeModifier.Operation.MULTIPLY_BASE));
-        ret.put(Attributes.ARMOR, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_armor", 5, AttributeModifier.Operation.ADDITION));
+        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_health", maxHealthBonus, maxHealthModifier));
+        ret.put(Attributes.ARMOR, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_armor", armorBonus, armorBonusModifier));
 
-        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_movement_speed", 0.1, AttributeModifier.Operation.MULTIPLY_BASE));
+        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_movement_speed", movementSpeedBonus, movementSpeedBonusModifier));
 
-        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_attack_damage", 0.25, AttributeModifier.Operation.MULTIPLY_BASE));
+        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(HUNTER_MODIFIER_UUID, "hunter_bonus_attack_damage", attackDamageBonus, attackDamageBonusModifier));
 
         return ret;
     }

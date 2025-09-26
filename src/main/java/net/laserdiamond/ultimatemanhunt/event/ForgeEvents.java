@@ -7,10 +7,7 @@ import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerLifeLossEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.*;
-import net.laserdiamond.ultimatemanhunt.commands.sub.GameProfileSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.GracePeriodSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.SetGameStateSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.SetSpawnCommand;
+import net.laserdiamond.ultimatemanhunt.commands.sub.*;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.AllowWindTorchesSC;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.BuffedHunterOnFinalDeathSC;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.SetFriendlyFireSC;
@@ -88,6 +85,8 @@ public class ForgeEvents {
         event.registerSubCommand(UltimateManhunt.fromUMPath("set_spawn"), SetSpawnCommand::new);
 
         event.registerSubCommand(UltimateManhunt.fromUMPath("grace_period"), GracePeriodSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("hunter_buffs"), HunterBuffsSC::new);
     }
 
     @SubscribeEvent
@@ -138,7 +137,7 @@ public class ForgeEvents {
                     }
                     if (isNearHunter(deadPlayer))
                     {
-                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
 
                     }
                 } else if (deadUMPlayer.isHunter()) // Player is a hunter
@@ -326,12 +325,13 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event)
     {
-        if (event.getEntity().level().isClientSide)
+        Player player = event.getEntity();
+        if (player.level().isClientSide)
         {
             return;
         }
         // Update count for remaining players
-        UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
+        UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(player));
     }
 
     @SubscribeEvent
@@ -341,6 +341,7 @@ public class ForgeEvents {
         if (!player.level().isClientSide)
         {
             UMSoundEvents.stopFlatlineSound(player); // Stop heart flatline on respawn
+            UMSoundEvents.stopDetectionSound(player); // Stop detection sound
 
             // Player has just respawned. Set their grace period time stamp if they were previously killed by a hunter
             player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->

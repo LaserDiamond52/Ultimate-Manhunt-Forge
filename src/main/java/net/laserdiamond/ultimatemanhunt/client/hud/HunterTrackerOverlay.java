@@ -33,7 +33,6 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
         int drawY = guiGraphics.guiHeight() - 77;
 
         boolean areSpeedRunnersPresent = ClientTrackedSpeedRunner.areSpeedRunnersPresent();
-        float distance = ClientTrackedSpeedRunner.getDistance();
         String trackedPlayerName = ClientTrackedSpeedRunner.getTrackedPlayerName();
         UUID trackedUUID = ClientTrackedSpeedRunner.getTrackedPlayerUUID();
         long gameTime = ClientGameTime.getGameTime();
@@ -52,18 +51,17 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
             {
                 if (trackedUUID != player.getUUID()) // Do not track self
                 {
-                    guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + trackedPlayerName + " is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
-
-                    Vec3 speedRunnerPos = ClientTrackedSpeedRunner.getPosition(); // Set the position to track
                     Vec3 hunterCameraPos = camera.getPosition();
 
-                    double cameraDistanceToPlayer = hunterCameraPos.distanceTo(speedRunnerPos);
-                    double xDif = hunterCameraPos.x - speedRunnerPos.x;
-                    double yDif = hunterCameraPos.y - speedRunnerPos.y;
-                    double zDif = hunterCameraPos.z - speedRunnerPos.z;
+                    Vec3 speedRunnerPosLerp = ClientTrackedSpeedRunner.getLerpedSpeedRunnerPosition(partialTick).add(0, ClientTrackedSpeedRunner.getEyeHeight(), 0);
 
-                    double yRot = -Math.acos(yDif / cameraDistanceToPlayer) + (Math.PI * 3 / 2); // Angle to track vertical
-                    double xRotTan = Math.atan2(zDif, -xDif) + (Math.PI); // Angle to track horizontal axis
+                    Vec3 direction = hunterCameraPos.subtract(speedRunnerPosLerp);
+                    double distance = Math.sqrt(Math.pow(direction.x, 2) + Math.pow(direction.y, 2) + Math.pow(direction.z, 2));
+
+                    guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + trackedPlayerName + " is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
+
+                    double xRot = -Math.acos(direction.y / distance) + (Math.PI * 3 / 2); // Angle to track vertical
+                    double yRot = Math.atan2(direction.z, -direction.x) + (Math.PI); // Angle to track horizontal axis
 
                     PoseStack poseStack = RenderSystem.getModelViewStack();
                     poseStack.pushPose();
@@ -72,8 +70,8 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
 
                     // Set rotations for default position of the tracker
                     // If the tracker is roughly in this position, you are heading towards the speed runner (line is flat on the screen)
-                    poseStack.mulPose(Axis.XN.rotationDegrees((float) (camera.getXRot() - (yRot * 180.0F / Math.PI) + 180))); // Rotate tracker to locate player on y-axis
-                    poseStack.mulPose(Axis.YP.rotation((float) (((45F + camera.getYRot()) * Mth.DEG_TO_RAD) + xRotTan))); // Track on X and Z axis
+                    poseStack.mulPose(Axis.XN.rotationDegrees((float) (camera.getXRot() - (xRot * 180.0F / Math.PI) + 180))); // Rotate tracker to locate player on y-axis
+                    poseStack.mulPose(Axis.YP.rotation((float) (((45F + camera.getYRot()) * Mth.DEG_TO_RAD) + yRot))); // Track on X and Z axis
 
                     poseStack.scale(-1.0F, -1.0F, -1.0F);
                     RenderSystem.applyModelViewMatrix();
@@ -93,7 +91,6 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
                 }
             } else
             {
-//                guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "There are no Speed Runners nearby"), drawX, drawY, ChatFormatting.RED.getColor());
                 guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "This Speed Runner cannot be tracked from your current position"), drawX, drawY, ChatFormatting.RED.getColor());
             }
         }

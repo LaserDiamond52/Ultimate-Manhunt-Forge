@@ -26,6 +26,31 @@ public class RemainingPlayerCountS2CPacket extends NetworkPacket {
         this.players = new int[]{speedRunners.size(), hunters.size()};
     }
 
+    public RemainingPlayerCountS2CPacket(Player excludedPlayer)
+    {
+        LinkedList<Player> speedRunners = new LinkedList<>();
+        LinkedList<Player> hunters = new LinkedList<>();
+        UMPlayer.forAllPlayers(
+                (player, umPlayer) -> {
+                    if (player.getUUID() == excludedPlayer.getUUID())
+                    {
+                        return;
+                    }
+                    speedRunners.add(player);
+                },
+                (player, umPlayer) -> {
+                    if (player.getUUID() == excludedPlayer.getUUID())
+                    {
+                        return;
+                    }
+                    hunters.add(player);
+                },
+                (player, umPlayer) -> {},
+                (player, umPlayer) -> {}
+        );
+        this.players = new int[]{speedRunners.size(), hunters.size()};
+    }
+
     public RemainingPlayerCountS2CPacket(FriendlyByteBuf buf)
     {
         this.players = buf.readVarIntArray();

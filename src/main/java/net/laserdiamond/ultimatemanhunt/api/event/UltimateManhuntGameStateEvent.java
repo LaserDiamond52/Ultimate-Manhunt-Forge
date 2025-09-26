@@ -84,7 +84,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     /**
      * Called for all players
      * @param player The {@linkplain Player player} being called upon
-     * @param umPlayer
+     * @param umPlayer The {@linkplain Player player's} {@linkplain UMPlayer Manhunt player data}
      */
     protected void forAllPlayers(Player player, UMPlayer umPlayer) {}
 
@@ -107,7 +107,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     protected void forSpectators(Player player, UMPlayer umPlayer) {}
 
     /**
-     * Event called when the Revers Manhunt game starts
+     * Event called when the Manhunt game starts
      */
     public static class Start extends UltimateManhuntGameStateEvent implements PlayerGameSpawner
     {
@@ -131,6 +131,8 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             player.setHealth(player.getMaxHealth());
             player.tickCount = 0; // Reset tick counts
             player.getFoodData().eat(200, 1.0F); // Reset food level
+            UMSoundEvents.stopDetectionSound(player);
+            UMSoundEvents.stopFlatlineSound(player);
         }
 
         @Override
@@ -156,32 +158,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide)
             {
-//                UMGame.logPlayerUUID(player); // Log the player for this iteration of the game
                 player.getInventory().clearContent(); // Clear items
-
-//                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-//                {
-//                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives()); // Reset lives
-//                    playerSpeedRunner.setWasLastKilledByHunter(false);
-//                    playerSpeedRunner.setGracePeriodTimeStamp(0);
-//                    UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player, playerSpeedRunner), player);
-//                });
-//                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//                {
-//                    if (playerHunter.isHunter()) // Ensure that the player is a hunter
-//                    {
-//                        player.getAbilities().mayfly = true;
-//                        player.getAbilities().flying = true;
-//                        player.onUpdateAbilities();
-//                        player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Add spawn attributes
-//                        if (playerHunter.isBuffed()) // Add buff attributes
-//                        {
-//                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
-//                            player.setHealth(player.getMaxHealth());
-//                        }
-//                    }
-//                });
 
                 umPlayer.resetToHunter(player, true);
                 player.getAbilities().mayfly = true;
@@ -238,20 +215,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide)
             {
-//                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-//                {
-//                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
-//                    playerSpeedRunner.setWasLastKilledByHunter(false);
-//                    playerSpeedRunner.setGracePeriodTimeStamp(0);
-//                    UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player, playerSpeedRunner), player);
-//                });
-//                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-//                {
-//                    playerGameTime.setGameTime(0);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player, playerGameTime), player);
-//                });
-
                 umPlayer.resetToSpeedRunner(player, false);
 
                 player.getInventory().clearOrCountMatchingItems(itemStack -> itemStack.getItem() instanceof WindTorchItem, -1, player.inventoryMenu.getCraftSlots());
@@ -263,40 +226,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide)
             {
-//                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//                {
-//                    player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Remove spawn attributes
-//                    if (playerHunter.isBuffed()) // Check if buffed
-//                    {
-//                        player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterAttributes()); // Remove buffed attributes
-//                    }
-//                    // Reset all players from being a hunter
-//                    playerHunter.setHunter(false);
-//                    playerHunter.setBuffed(false);
-//                    UMPackets.sendToPlayer(new HunterChangeS2CPacket(playerHunter), player);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player, playerHunter), player);
-//                    if (this.getGameTime() < UMGame.getHunterGracePeriod()) // Are hunters still on grace period?
-//                    {
-//                        this.spawn(player); // Teleport hunter back down
-//
-//                        // This is necessary since hunters are teleported 1000 blocks in the air and will be kicked for flying if
-//                        // teleportation back to the surface is not performed
-//                    }
-//                });
-//                player.getCapability(PlayerSpeedRunnerCapability.PLAYER_SPEED_RUNNER).ifPresent(playerSpeedRunner ->
-//                {
-//                    playerSpeedRunner.setLives(PlayerSpeedRunner.getMaxLives());
-//                    playerSpeedRunner.setWasLastKilledByHunter(false);
-//                    playerSpeedRunner.setGracePeriodTimeStamp(0);
-//                    UMPackets.sendToPlayer(new SpeedRunnerChangeS2CPacket(playerSpeedRunner), player);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new SpeedRunnerCapabilitySyncS2CPacket(player, playerSpeedRunner), player);
-//                });
-//                player.getCapability(PlayerGameTimeCapability.PLAYER_GAME_TIME).ifPresent(playerGameTime ->
-//                {
-//                    playerGameTime.setGameTime(0);
-//                    UMPackets.sendToAllTrackingEntityAndSelf(new GameTimeCapabilitySyncS2CPacket(player, playerGameTime), player);
-//                });
-
                 if (umPlayer.isBuffedHunter())
                 {
                     player.getAttributes().removeAttributeModifiers(UMPlayer.createHunterAttributes()); // Add buff attributes
@@ -370,18 +299,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide)
             {
-//                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//                {
-//                    if (playerHunter.isHunter())
-//                    {
-//                        player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterSpawnAttributes()); // Remove spawn attributes from hunters
-//                        if (playerHunter.isBuffed())
-//                        {
-//                            player.getAttributes().removeAttributeModifiers(PlayerHunter.createHunterAttributes()); // Remove buff attributes from hunter
-//                        }
-//                    }
-//                });
-
                 if (umPlayer.isBuffedHunter())
                 {
                     player.getAttributes().removeAttributeModifiers(UMPlayer.createHunterAttributes());
@@ -430,21 +347,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
                 {
                     UMGame.logPlayerUUID(player); // Log them
                 }
-//                player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//                {
-//                    if (playerHunter.isHunter()) // Ensure that the player is a hunter
-//                    {
-//                        if (UMGame.areHuntersOnGracePeriod()) // Is the game still on grace period?
-//                        {
-//                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterSpawnAttributes());
-//                        }
-//                        if (playerHunter.isBuffed()) // Is the player a buffed hunter?
-//                        {
-//                            player.getAttributes().addTransientAttributeModifiers(PlayerHunter.createHunterAttributes()); // Add buff attributes
-//                        }
-//                    }
-//                });
-
                 if (umPlayer.isBuffedHunter())
                 {
                     player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes()); // Add buff attributes

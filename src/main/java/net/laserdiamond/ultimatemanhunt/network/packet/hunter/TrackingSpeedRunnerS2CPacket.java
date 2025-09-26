@@ -20,22 +20,24 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
 
     public static void sendNonTracking(Player player)
     {
-        UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player, 0F), player);
+        UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(false, player), player);
     }
 
     private final boolean speedRunnersPresent;
     private final String playerName;
     private final UUID playerUUID;
-    private final float distance;
     private final Vector3f position;
+    private final long updateTick;
+    private final float eyeHeight;
 
-    public TrackingSpeedRunnerS2CPacket(boolean speedRunnersPresent, Player player, float distance)
+    public TrackingSpeedRunnerS2CPacket(boolean speedRunnersPresent, Player player)
     {
         this.speedRunnersPresent = speedRunnersPresent;
         this.playerName = player.getName().getString();
         this.playerUUID = player.getUUID();
-        this.distance = distance;
-        this.position = player.getEyePosition().toVector3f();
+        this.position = player.position().toVector3f();
+        this.eyeHeight = player.getEyeHeight();
+        this.updateTick = player.level().getGameTime();
     }
 
     public TrackingSpeedRunnerS2CPacket(FriendlyByteBuf buf)
@@ -43,8 +45,9 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         this.speedRunnersPresent = buf.readBoolean();
         this.playerName = buf.readUtf();
         this.playerUUID = buf.readUUID();
-        this.distance = buf.readFloat();
         this.position = buf.readVector3f();
+        this.eyeHeight = buf.readFloat();
+        this.updateTick = buf.readLong();
     }
 
     @Override
@@ -52,8 +55,9 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         buf.writeBoolean(this.speedRunnersPresent);
         buf.writeUtf(this.playerName);
         buf.writeUUID(this.playerUUID);
-        buf.writeFloat(this.distance);
         buf.writeVector3f(this.position);
+        buf.writeFloat(this.eyeHeight);
+        buf.writeLong(this.updateTick);
     }
 
     @Override
@@ -68,8 +72,13 @@ public class TrackingSpeedRunnerS2CPacket extends NetworkPacket {
         ClientTrackedSpeedRunner.setSpeedRunnersPresent(this.speedRunnersPresent);
         ClientTrackedSpeedRunner.setTrackedPlayerName(this.playerName);
         ClientTrackedSpeedRunner.setTrackedPlayerUUID(this.playerUUID);
-        ClientTrackedSpeedRunner.setDistance(this.distance);
+        ClientTrackedSpeedRunner.setEyeHeight(this.eyeHeight);
+        ClientTrackedSpeedRunner.setOldPosition(ClientTrackedSpeedRunner.getPosition());
         ClientTrackedSpeedRunner.setPosition(new Vec3(this.position));
 
+        long lastUpdateTick = ClientTrackedSpeedRunner.getLastUpdateTick();
+        long interval = Math.max(this.updateTick - lastUpdateTick, 1);
+        ClientTrackedSpeedRunner.setUpdateInterval(interval);
+        ClientTrackedSpeedRunner.setLastUpdateTick(this.updateTick);
     }
 }

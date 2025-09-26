@@ -371,110 +371,20 @@ public class UMGame {
                 {
                     if (umPlayer.isBuffedHunter())
                     {
-                        player.getFoodData().eat(200, 1.0F);
+                        if (UMPlayer.getHasInfiniteSaturation())
+                        {
+                            player.getFoodData().eat(200, 1.0F);
+                        }
                         if (player.tickCount % 200 == 0)
                         {
-                            player.setHealth(player.getHealth() + 2);
+                            player.setHealth(player.getHealth() + UMPlayer.getPassiveRegen());
 
                         }
                     }
                     if (currentGameTime < hunterGracePeriodTicks)
                     {
                         player.teleportTo(xSpawnCoordinate, 1000, zSpawnCoordinate); // Hunters should be teleported to an unreachable place
-                        return;
                     }
-                    // Tracking players
-                    List<Player> speedRunners = UMPlayer.getAvailableSpeedRunners(player);
-                    if (speedRunners.isEmpty())
-                    {
-                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player);
-                        return;
-                    }
-                    for (Player speedRunnerPlayer : speedRunners)
-                    {
-                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(player))
-                        {
-                            continue; // Speed runner is on grace period. Do not continue
-                        }
-                        if (!player.isAlive()) // Is the hunter dead?
-                        {
-                            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(speedRunnerPlayer); // Hunter is dead
-                            continue; // Skip to next iteration. Shouldn't notify player if hunter is dead
-                        }
-                        float distance = player.distanceTo(speedRunnerPlayer);
-                        UMPackets.sendToPlayer(new SpeedRunnerDistanceFromHunterS2CPacket(distance), speedRunnerPlayer);
-
-                        if (distance < HUNTER_DETECTION_RANGE) // Is the nearby player close enough to the hunter to be notified?
-                        {
-                            if (speedRunnerPlayer instanceof ServerPlayer nearServerPlayer)
-                            {
-                                if (speedRunnerPlayer.isAlive()) // Is the player alive?
-                                {
-                                    int rate = (int) ((distance / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
-                                    if (speedRunnerPlayer.tickCount % rate == 0) // ~180 bpm
-                                    {
-                                        nearServerPlayer.connection.send(new ClientboundSoundPacket(UMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
-                                    }
-                                    UMSoundEvents.playDetectionSound(speedRunnerPlayer); // Play detection sound
-                                }
-                            }
-
-                        } else // Not close enough to notify hunter
-                        {
-                            UMSoundEvents.stopDetectionSound(speedRunnerPlayer);
-                        }
-
-                    }
-
-                    UUID trackedPlayerUUID = umPlayer.getTrackingPlayerUUID(); // UUID of player to track
-                    if (trackedPlayerUUID == player.getUUID())
-                    {
-                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // No player being tracked.
-                        return;
-                    }
-                    MinecraftServer mcServer = player.getServer();
-                    if (mcServer == null) // Is server null?
-                    {
-                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // No player being tracked.
-                        return;
-                    }
-                    Player trackedPlayer = mcServer.getPlayerList().getPlayer(trackedPlayerUUID); // Player to track
-                    if (trackedPlayer == null) // Is there a player being tracked?
-                    {
-                        TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // No player being tracked.
-                        return;
-                    }
-                    if (!trackedPlayer.level().isClientSide) // On server for tracked player?
-                    {
-                        if (!trackedPlayer.level().dimension().equals(player.level().dimension())) // Are players in different dimensions?
-                        {
-                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // Tracked Player and Hunter are not in the same dimension
-                            return;
-                        }
-                        if (UMPlayer.isSpeedRunnerOnGracePeriodServer(trackedPlayer)) // Is the speed runner on grace period?
-                        {
-                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // Tracked Player is on grace period
-                            return;
-                        }
-                        if (!trackedPlayer.isAlive()) // Is the tracked player alive?
-                        {
-                            TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // Tracked Player is dead
-                            return;
-                        }
-                        LazyOptional<UMPlayer> trackedPlayerCap = trackedPlayer.getCapability(UMPlayerCapability.UM_PLAYER); // Get hunter capability of tracked player
-                        if (trackedPlayerCap.isPresent()) // Is the capability present?
-                        {
-                            UMPlayer trackedPlayerHunter = trackedPlayerCap.orElse(new UMPlayer(trackedPlayerUUID));
-                            if (!trackedPlayerHunter.isSpeedRunner()) // Is the tracked player NOT a speed runner (Player could change roles while being tracked)
-                            {
-                                TrackingSpeedRunnerS2CPacket.sendNonTracking(player); // Player is a hunter. Do not track
-                                return;
-                            }
-                        }
-                    }
-                    float distance = player.distanceTo(trackedPlayer);
-                    UMPackets.sendToPlayer(new TrackingSpeedRunnerS2CPacket(true, trackedPlayer, distance), player); // Hunter is now tracking this player
-
                     // Track Nearest Player
 //                    HashMap<Integer, Float> playerDistances = new HashMap<>();
 //                    HashMap<Integer, Vec3> playerPositions = new HashMap<>();

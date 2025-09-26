@@ -2,7 +2,7 @@ package net.laserdiamond.ultimatemanhunt.client.hud;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.laserdiamond.ultimatemanhunt.UMGame;
+import net.laserdiamond.ultimatemanhunt.capability.SpeedRunnerHunterProximity;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientDistanceFromHunter;
@@ -22,9 +22,10 @@ public final class SpeedRunnerHunterDetectionOverlay implements UMHUDOverlay {
 
         if (umPlayer.isSpeedRunner())
         {
-            if ((distanceFromHunter > -1) && (distanceFromHunter < UMGame.HUNTER_DETECTION_RANGE) && !umPlayer.isSpeedRunnerOnGracePeriodClient()) // Player has to be in hunter detection range, distance cannot be -1, and must not be on grace period
+            if ((distanceFromHunter != -1) && (distanceFromHunter < SpeedRunnerHunterProximity.HUNTER_DETECTION_RANGE) && !umPlayer.isSpeedRunnerOnGracePeriodClient()) // Player has to be in hunter detection range, distance cannot be -1, and must not be on grace period
             {
-                float red = -(distanceFromHunter / 110F) + 0.9F;
+                // Decrease intensity of red (make this adjustable from a client setting)
+                float red = (-(distanceFromHunter / 110F) + 0.9F) / 3.25F;
 
                 RenderSystem.disableDepthTest();
                 RenderSystem.depthMask(false);
