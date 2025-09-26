@@ -44,7 +44,7 @@ public class UMSoundEvents {
             if (sm.getSoundTime(player) == 0)
             {
                 Level level = player.level();
-                serverPlayer.connection.send(new ClientboundSoundPacket(HUNTER_DETECTED.getHolder().get(), SoundSource.MUSIC, player.getX(), player.getY(), player.getZ(), 50, 1.0F, level.getRandom().nextLong()));
+                serverPlayer.connection.send(new ClientboundSoundPacket(HUNTER_DETECTED.getHolder().get(), SoundSource.MUSIC, player.getX(), player.getY(), player.getZ(), 2, 1.0F, level.getRandom().nextLong()));
             }
             sm.increment(player);
         }
@@ -66,7 +66,7 @@ public class UMSoundEvents {
         if (player instanceof ServerPlayer serverPlayer)
         {
             Level level = player.level();
-            serverPlayer.connection.send(new ClientboundSoundPacket(HEAT_BEAT_FLATLINE.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+            serverPlayer.connection.send(new ClientboundSoundPacket(HEAT_BEAT_FLATLINE.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 3, 1.0F, level.getRandom().nextLong()));
         }
     }
 

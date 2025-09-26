@@ -137,6 +137,8 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             player.setHealth(player.getMaxHealth());
             player.tickCount = 0; // Reset tick counts
             player.getFoodData().eat(200, 1.0F); // Reset food level
+            UMSoundEvents.stopDetectionSound(player);
+            UMSoundEvents.stopFlatlineSound(player);
             player.getInventory().clearContent(); // Clear items
             if (player.isSpectator())
             {
