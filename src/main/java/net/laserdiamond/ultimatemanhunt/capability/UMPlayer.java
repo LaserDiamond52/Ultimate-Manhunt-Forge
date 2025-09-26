@@ -35,6 +35,24 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
     private static boolean buffedHunterOnFinalDeath = false;
+    private static double maxHealthBonus = 0.5;
+    private static AttributeModifier.Operation maxHealthModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double armorBonus = 5;
+    private static AttributeModifier.Operation armorBonusModifier = AttributeModifier.Operation.ADD_VALUE;
+    private static double movementSpeedBonus = 0.1;
+    private static AttributeModifier.Operation movementSpeedBonusModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double movementEfficiencyBonus = 0.1;
+    private static AttributeModifier.Operation movementEfficiencyModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double waterMovementEfficiencyBonus = 0.1;
+    private static AttributeModifier.Operation waterMovementEfficiencyModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double miningEfficiencyBonus = 0.15;
+    private static AttributeModifier.Operation miningEfficiencyModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double submergedMiningEfficiencyBonus = 0.15;
+    private static AttributeModifier.Operation submergedMiningEfficiencyModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static double attackDamageBonus = 0.25;
+    private static AttributeModifier.Operation attackDamageBonusModifier = AttributeModifier.Operation.ADD_MULTIPLIED_BASE;
+    private static boolean hasInfiniteSaturation = false;
+    private static float passiveRegen = 2;
 
     /**
      * @return The maximum amount of lives speed runners can currently hold
@@ -83,23 +101,294 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         return true;
     }
 
+    public static double getMaxHealthBonus()
+    {
+        return maxHealthBonus;
+    }
+
+    public static AttributeModifier.Operation getMaxHealthModifier()
+    {
+        return maxHealthModifier;
+    }
+
+    public static double getArmorBonus()
+    {
+        return armorBonus;
+    }
+
+    public static AttributeModifier.Operation getArmorBonusModifier()
+    {
+        return armorBonusModifier;
+    }
+
+    public static double getMovementSpeedBonus()
+    {
+        return movementSpeedBonus;
+    }
+
+    public static AttributeModifier.Operation getMovementSpeedBonusModifier()
+    {
+        return movementSpeedBonusModifier;
+    }
+
+    public static double getMovementEfficiencyBonus()
+    {
+        return movementEfficiencyBonus;
+    }
+
+    public static AttributeModifier.Operation getMovementEfficiencyModifier()
+    {
+        return movementEfficiencyModifier;
+    }
+
+    public static double getWaterMovementEfficiencyBonus()
+    {
+        return waterMovementEfficiencyBonus;
+    }
+
+    public static AttributeModifier.Operation getWaterMovementEfficiencyModifier()
+    {
+        return waterMovementEfficiencyModifier;
+    }
+
+    public static double getMiningEfficiencyBonus()
+    {
+        return miningEfficiencyBonus;
+    }
+
+    public static AttributeModifier.Operation getMiningEfficiencyModifier()
+    {
+        return miningEfficiencyModifier;
+    }
+
+    public static double getSubmergedMiningEfficiencyBonus()
+    {
+        return submergedMiningEfficiencyBonus;
+    }
+
+    public static AttributeModifier.Operation getSubmergedMiningEfficiencyModifier()
+    {
+        return submergedMiningEfficiencyModifier;
+    }
+
+    public static double getAttackDamageBonus()
+    {
+        return attackDamageBonus;
+    }
+
+    public static AttributeModifier.Operation getAttackDamageBonusModifier()
+    {
+        return attackDamageBonusModifier;
+    }
+
+    public static boolean getHasInfiniteSaturation()
+    {
+        return hasInfiniteSaturation;
+    }
+
+    public static float getPassiveRegen()
+    {
+        return passiveRegen;
+    }
+
+
+    public static boolean setMaxHealthBonus(double newHealthBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        maxHealthBonus = newHealthBonus;
+        return true;
+    }
+
+    public static boolean setMaxHealthBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        maxHealthModifier = operation;
+        return true;
+    }
+
+    public static boolean setArmorBonus(double newArmorBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        armorBonus = newArmorBonus;
+        return true;
+    }
+
+    public static boolean setArmorBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        armorBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean setMovementSpeedBonus(double newSpeedBonus)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementSpeedBonus = newSpeedBonus;
+        return true;
+    }
+
+    public static boolean setMovementSpeedBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementSpeedBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean setMovementEfficiencyBonus(double value)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementEfficiencyBonus = value;
+        return true;
+    }
+
+    public static boolean setMovementEfficiencyBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        movementEfficiencyModifier = operation;
+        return true;
+    }
+
+    public static boolean setWaterMovementEfficiencyBonus(double value)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        waterMovementEfficiencyBonus = value;
+        return true;
+    }
+
+    public static boolean setWaterMovementEfficiencyBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        waterMovementEfficiencyModifier = operation;
+        return true;
+    }
+
+    public static boolean setMiningEfficiencyBonus(double value)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        miningEfficiencyBonus = value;
+        return true;
+    }
+
+    public static boolean setMiningEfficiencyBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        miningEfficiencyModifier = operation;
+        return true;
+    }
+
+    public static boolean setSubmergedMiningEfficiencyBonus(double value)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        submergedMiningEfficiencyBonus = value;
+        return true;
+    }
+
+    public static boolean setSubmergedMiningEfficiencyBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        submergedMiningEfficiencyModifier = operation;
+        return true;
+    }
+
+    public static boolean setAttackDamageBonus(double newAttackDamage)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        attackDamageBonus = newAttackDamage;
+        return true;
+    }
+
+    public static boolean setAttackDamageBonusModifier(AttributeModifier.Operation operation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        attackDamageBonusModifier = operation;
+        return true;
+    }
+
+    public static boolean setHasInfiniteSaturation(boolean infiniteSaturation)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        hasInfiniteSaturation = infiniteSaturation;
+        return true;
+    }
+
+    public static boolean setPassiveRegen(float amount)
+    {
+        if (UMGame.State.hasGameBeenStarted())
+        {
+            return false;
+        }
+        passiveRegen = Math.max(0, amount);
+        return true;
+    }
+
     /**
      * @return A {@link HashMultimap} of {@linkplain Attribute attributes} and {@linkplain AttributeModifier attribute modifiers} to be applied to each Hunter
      */
     public static HashMultimap<Holder<Attribute>, AttributeModifier> createHunterAttributes()
     {
         HashMultimap<Holder<Attribute>, AttributeModifier> ret = HashMultimap.create();
-        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(ACTIVE_MODIFIER, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-        ret.put(Attributes.ARMOR, new AttributeModifier(ACTIVE_MODIFIER, 5, AttributeModifier.Operation.ADD_VALUE));
+        ret.put(Attributes.MAX_HEALTH, new AttributeModifier(ACTIVE_MODIFIER, maxHealthBonus, maxHealthModifier));
+        ret.put(Attributes.ARMOR, new AttributeModifier(ACTIVE_MODIFIER, armorBonus, armorBonusModifier));
 
-        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(ACTIVE_MODIFIER, 0.1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-        ret.put(Attributes.MOVEMENT_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, 0.1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-        ret.put(Attributes.WATER_MOVEMENT_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, 0.1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+        ret.put(Attributes.MOVEMENT_SPEED, new AttributeModifier(ACTIVE_MODIFIER, movementSpeedBonus, movementSpeedBonusModifier));
+        ret.put(Attributes.MOVEMENT_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, movementEfficiencyBonus, movementEfficiencyModifier));
+        ret.put(Attributes.WATER_MOVEMENT_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, waterMovementEfficiencyBonus, waterMovementEfficiencyModifier));
 
-        ret.put(Attributes.MINING_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-        ret.put(Attributes.SUBMERGED_MINING_SPEED, new AttributeModifier(ACTIVE_MODIFIER, 0.15, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+        ret.put(Attributes.MINING_EFFICIENCY, new AttributeModifier(ACTIVE_MODIFIER, miningEfficiencyBonus, miningEfficiencyModifier));
+        ret.put(Attributes.SUBMERGED_MINING_SPEED, new AttributeModifier(ACTIVE_MODIFIER, submergedMiningEfficiencyBonus, submergedMiningEfficiencyModifier));
 
-        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(ACTIVE_MODIFIER, 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+        ret.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(ACTIVE_MODIFIER, attackDamageBonus, attackDamageBonusModifier));
 
         return ret;
     }

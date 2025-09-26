@@ -7,10 +7,7 @@ import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerLifeLossEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.*;
-import net.laserdiamond.ultimatemanhunt.commands.sub.GameProfileSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.GracePeriodSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.SetGameStateSC;
-import net.laserdiamond.ultimatemanhunt.commands.sub.SetSpawnCommand;
+import net.laserdiamond.ultimatemanhunt.commands.sub.*;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.AllowWindTorchesSC;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.BuffedHunterOnFinalDeathSC;
 import net.laserdiamond.ultimatemanhunt.commands.sub.gamerule.SetFriendlyFireSC;
@@ -56,21 +53,6 @@ public class ForgeEvents {
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event)
     {
-//        SetPlayerRoleCommands.register(event.getDispatcher());
-//        UltimateManhuntGameCommands.register(event.getDispatcher());
-//        SetFriendlyFireCommand.register(event.getDispatcher());
-//        SetHardcoreCommand.register(event.getDispatcher());
-//        SetGracePeriodCommand.register(event.getDispatcher());
-//        SetRemainingSpeedRunnerLivesCommand.register(event.getDispatcher());
-//        MaxSpeedRunnerLivesCommand.register(event.getDispatcher());
-//        SetUMSpawnCommand.register(event.getDispatcher());
-//        SetWindTorchesCommand.register(event.getDispatcher());
-//        SetBuffedHunterOnFinalDeathCommand.register(event.getDispatcher());
-//        UMGameProfileCommand.register(event.getDispatcher());
-//
-//        SetNewPlayerRoleCommand.register(event.getDispatcher());
-//        SetDeadPlayerRoleCommand.register(event.getDispatcher());
-
         MinecraftForge.EVENT_BUS.post(new RegisterManhuntSubCommandEvent(event));
         UltimateManhuntCommands.register(event.getDispatcher());
         ResetHunterTrackerCommand.register(event.getDispatcher());
@@ -98,6 +80,8 @@ public class ForgeEvents {
         event.registerSubCommand(UltimateManhunt.fromUMPath("set_spawn"), SetSpawnCommand::new);
 
         event.registerSubCommand(UltimateManhunt.fromUMPath("grace_period"), GracePeriodSC::new);
+
+        event.registerSubCommand(UltimateManhunt.fromUMPath("hunter_buffs"), HunterBuffsSC::new);
     }
 
     @SubscribeEvent
@@ -148,7 +132,7 @@ public class ForgeEvents {
                     }
                     if (isNearHunter(deadPlayer))
                     {
-                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, null));
+                        MinecraftForge.EVENT_BUS.post(new SpeedRunnerLifeLossEvent(deadPlayer, true));
 
                     }
                 } else if (deadUMPlayer.isHunter()) // Player is a hunter
@@ -261,7 +245,6 @@ public class ForgeEvents {
         {
             return;
         }
-
         UMPackets.sendToPlayer(new GameStateS2CPacket(UMGame.getCurrentGameState()), player); // Let player know the current game state as soon as they join
         UMPackets.sendToPlayer(new HardcoreUpdateS2CPacket(UMGame.isHardcore()), player); // Let the player know whether hardcore is enabled
         UMPackets.sendToPlayer(new HunterGracePeriodDurationS2CPacket(UMGame.getHunterGracePeriod()), player); // Let the player know the hunter grace period
@@ -330,20 +313,20 @@ public class ForgeEvents {
                     }
                 }
             });
-            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let players know how many remaining players on each team
+            UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let all player know how many remaining players on each team
         }
     }
 
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event)
     {
-        if (event.getEntity().level().isClientSide)
+        Player player = event.getEntity();
+        if (player.level().isClientSide)
         {
             return;
         }
         // Update count for remaining players
-        UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
-        // TODO: Pause game if there aren't enough speed runners or hunters
+        UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket(player));
     }
 
     @SubscribeEvent
@@ -353,12 +336,13 @@ public class ForgeEvents {
         if (!player.level().isClientSide)
         {
             UMSoundEvents.stopFlatlineSound(player); // Stop heart flatline on respawn
+            UMSoundEvents.stopDetectionSound(player); // Stop detection sound
 
             // Player has just respawned. Set their grace period time stamp if they were previously killed by a hunter
             player.getCapability(UMPlayerCapability.UM_PLAYER).ifPresent(umPlayer ->
             {
                 // Assume the player is not near a hunter anymore
-                SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
+                SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(player);
                 if (umPlayer.isWasLastKilledByHunter())
                 {
                     long timeStamp = UMGame.getCurrentGameTime() + UMGame.getSpeedRunnerGracePeriod();
@@ -366,6 +350,11 @@ public class ForgeEvents {
                 } else
                 {
                     umPlayer.setGracePeriodTimeStamp(0);
+                }
+                if (umPlayer.isBuffedHunter())
+                {
+                    player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes());
+                    player.setHealth(player.getMaxHealth());
                 }
                 umPlayer.sendUpdateFromServerToSelf(player);
             });

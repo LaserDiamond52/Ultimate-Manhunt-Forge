@@ -24,8 +24,22 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
     public SpeedRunnerLifeLossEvent(Player speedRunner, Player hunter) {
         super(speedRunner);
         this.hunter = hunter;
-        this.wasKilledByHunter = (this.hunter != null);
+        this.wasKilledByHunter = (hunter != null);
 
+        invoke(speedRunner, this.hunter, this.wasKilledByHunter);
+    }
+
+    public SpeedRunnerLifeLossEvent(Player speedRunner, boolean wasKilledByHunter)
+    {
+        super(speedRunner);
+        this.hunter = null;
+        this.wasKilledByHunter = wasKilledByHunter;
+
+        invoke(speedRunner, null, this.wasKilledByHunter);
+    }
+
+    private static void invoke(Player speedRunner, Player hunter, boolean wasKilledByHunter)
+    {
         if (speedRunner.level().isClientSide)
         {
             return;
@@ -41,11 +55,17 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
                     .setWasLastKilledByHunter(wasKilledByHunter)
                     .sendUpdateFromServerToSelf(speedRunner);
 
-            if (this.wasKilledByHunter)
+            if (wasKilledByHunter)
             {
                 UMSoundEvents.playFlatlineSound(speedRunner);
                 speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were killed by a Hunter and lost a life!"));
-                UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " was killed by " + hunter.getDisplayName().getString() + " and lost a life!"));
+                if (hunter != null)
+                {
+                    UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " was killed by " + hunter.getDisplayName().getString() + " and lost a life!"));
+                } else
+                {
+                    UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " was killed by a hunter and lost a life!"));
+                }
             } else
             {
                 speedRunner.sendSystemMessage(Component.literal(ChatFormatting.RED + "You died and lost a life!"));
@@ -60,7 +80,7 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
                     UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " lost all their lives and is now a hunter!"));
                 } else
                 {
-                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(speedRunner, this.wasKilledByHunter));
+                    MinecraftForge.EVENT_BUS.post(new SpeedRunnerToSpectatorEvent(speedRunner, wasKilledByHunter));
                     UMGame.sendMessageToAllPlayers(server, Component.literal(ChatFormatting.RED + speedRunner.getDisplayName().getString() + " lost all their lives is now a spectator!"));
                 }
 
@@ -73,16 +93,22 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
     }
 
     /**
+     * Returns the {@linkplain Player hunter} that killed the speed runner.
+     * This can return null if the player lost a life due to a death not directly caused by a hunter.
+     * Please use {@link #isWasKilledByHunter()} to check if the speed runner died to a hunter
+     * @return The {@linkplain Player hunter} that killed the speed runner. Returns null if no hunter
+     * directly killed the speed runner.
+     */
+    public Player getHunter()
+    {
+        return this.hunter;
+    }
+
+    /**
      * Returns whether the life loss was due to a hunter
      * @return True if the life loss was from a hunter, false otherwise
      */
     public boolean isWasKilledByHunter() {
         return this.wasKilledByHunter;
-    }
-
-    @Nullable
-    public Player getHunter()
-    {
-        return this.hunter;
     }
 }

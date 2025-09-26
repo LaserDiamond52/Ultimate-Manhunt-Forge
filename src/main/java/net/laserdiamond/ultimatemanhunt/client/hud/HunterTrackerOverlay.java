@@ -36,10 +36,10 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
         int drawY = guiGraphics.guiHeight() - 77;
 
         boolean areSpeedRunnersPresent = ClientTrackedSpeedRunner.areSpeedRunnersPresent();
-        float distance = ClientTrackedSpeedRunner.getDistance();
         String trackedPlayerName = ClientTrackedSpeedRunner.getTrackedPlayerName();
         UUID trackedUUID = ClientTrackedSpeedRunner.getTrackedPlayerUUID();
         long gameTime = ClientGameTime.getGameTime();
+        float partialTick = deltaTracker.getGameTimeDeltaPartialTick(true);
 
         Camera camera = MINECRAFT.gameRenderer.getMainCamera();
 
@@ -56,18 +56,17 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
             {
                 if (trackedUUID != player.getUUID()) // Do not track self
                 {
-                    guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + trackedPlayerName + " is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
-
-                    Vec3 speedRunnerPos = ClientTrackedSpeedRunner.getPosition(); // Set the position to track
                     Vec3 hunterCameraPos = camera.getPosition();
 
-                    double cameraDistanceToPlayer = hunterCameraPos.distanceTo(speedRunnerPos);
-                    double xDif = hunterCameraPos.x - speedRunnerPos.x;
-                    double yDif = hunterCameraPos.y - speedRunnerPos.y;
-                    double zDif = hunterCameraPos.z - speedRunnerPos.z;
+                    Vec3 speedRunnerPosLerp = ClientTrackedSpeedRunner.getLerpedSpeedRunnerPosition(partialTick).add(0, ClientTrackedSpeedRunner.getEyeHeight(), 0);
 
-                    double yRot = Math.acos(yDif / cameraDistanceToPlayer) + (Math.PI * 3 / 2); // Angle to track vertical
-                    double xRotTan = Math.atan2(zDif, -xDif) + (Math.PI); // Angle to track horizontal axis
+                    Vec3 direction = hunterCameraPos.subtract(speedRunnerPosLerp);
+                    double distance = Math.sqrt(Math.pow(direction.x, 2) + Math.pow(direction.y, 2) + Math.pow(direction.z, 2));
+
+                    guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.GREEN + trackedPlayerName + " is " + ChatFormatting.YELLOW + format.format(distance) + ChatFormatting.GREEN + " blocks away"), drawX, drawY, ChatFormatting.GREEN.getColor());
+
+                    double yRot = Math.acos(direction.y / distance) + (Math.PI * 3 / 2); // Angle to track vertical
+                    double xRotTan = Math.atan2(direction.z, -direction.x) + (Math.PI); // Angle to track horizontal axis
 
                     Matrix4fStack matrix4fstack = RenderSystem.getModelViewStack();
                     matrix4fstack.pushMatrix();
@@ -97,7 +96,6 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
                 }
             } else
             {
-//                guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "There are no Speed Runners nearby"), drawX, drawY, ChatFormatting.RED.getColor());
                 guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "This Speed Runner cannot be tracked from your current position"), drawX, drawY, ChatFormatting.RED.getColor());
             }
         }

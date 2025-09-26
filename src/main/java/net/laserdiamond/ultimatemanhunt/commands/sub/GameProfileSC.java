@@ -60,6 +60,7 @@ public final class GameProfileSC extends UltimateManhuntCommands.SubCommand {
         if (UMGameSettingProfileConfig.doesGameProfileFileExist(profileName))
         {
             commandContext.getSource().sendSuccess(() -> Component.literal("Overwrote settings for Game Profile \"" + profileName + "\""), true);
+            new UMGameSettingProfileConfig(profileName).saveSettingsToFile();
             i++;
             return i;
         }
