@@ -147,7 +147,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setMaxHealthBuff(CommandContext<CommandSourceStack> commandContext, double amount, AttributeModifier.Operation operation)
     {
         int i = 0;
-        if (UMPlayer.setMaxHealthBonus(amount) && UMPlayer.setMaxHealthBonusModifier(operation))
+        if (!(UMPlayer.setMaxHealthBonus(amount) && UMPlayer.setMaxHealthBonusModifier(operation)))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
@@ -160,7 +160,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setArmorBuff(CommandContext<CommandSourceStack> commandContext, double amount, AttributeModifier.Operation operation)
     {
         int i = 0;
-        if (UMPlayer.setArmorBonus(amount) && UMPlayer.setArmorBonusModifier(operation))
+        if (!(UMPlayer.setArmorBonus(amount) && UMPlayer.setArmorBonusModifier(operation)))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
@@ -173,7 +173,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setSpeedBuff(CommandContext<CommandSourceStack> commandContext, double amount, AttributeModifier.Operation operation)
     {
         int i = 0;
-        if (UMPlayer.setMovementSpeedBonus(amount) && UMPlayer.setMovementSpeedBonusModifier(operation))
+        if (!(UMPlayer.setMovementSpeedBonus(amount) && UMPlayer.setMovementSpeedBonusModifier(operation)))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
@@ -186,7 +186,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setAttackDamageBuff(CommandContext<CommandSourceStack> commandContext, double amount, AttributeModifier.Operation operation)
     {
         int i = 0;
-        if (UMPlayer.setAttackDamageBonus(amount) && UMPlayer.setAttackDamageBonusModifier(operation))
+        if (!(UMPlayer.setAttackDamageBonus(amount) && UMPlayer.setAttackDamageBonusModifier(operation)))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
@@ -199,7 +199,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setSaturationBuff(CommandContext<CommandSourceStack> commandContext, boolean hasSaturation)
     {
         int i = 0;
-        if (UMPlayer.setHasInfiniteSaturation(hasSaturation))
+        if (!UMPlayer.setHasInfiniteSaturation(hasSaturation))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
