@@ -212,7 +212,7 @@ public class HunterBuffsSC extends UltimateManhuntCommands.SubCommand {
     private static int setPassiveRegenBuff(CommandContext<CommandSourceStack> commandContext, float amount)
     {
         int i = 0;
-        if (UMPlayer.setPassiveRegen(amount))
+        if (!UMPlayer.setPassiveRegen(amount))
         {
             commandContext.getSource().sendFailure(Component.literal(ChatFormatting.RED + "Cannot change hunter buffs when a game has already been started!"));
             return i;
