@@ -10,20 +10,14 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.GameStateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.GameTimeS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.HardcoreUpdateS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterGracePeriodDurationS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.hunter.TrackingSpeedRunnerS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerGracePeriodDurationS2CPacket;
-import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -359,8 +353,6 @@ public class UMGame {
             {
                 if (State.isGameRunning())
                 {
-                    player.getFoodData().eat(200, 1.0F);
-
                     if (umPlayer.isBuffedHunter())
                     {
                         if (UMPlayer.getHasInfiniteSaturation())
