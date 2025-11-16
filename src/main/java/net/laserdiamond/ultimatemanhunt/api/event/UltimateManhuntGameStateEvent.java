@@ -2,6 +2,8 @@ package net.laserdiamond.ultimatemanhunt.api.event;
 
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.event.ForgeEvents;
+import net.laserdiamond.ultimatemanhunt.event.ForgeServerEvents;
 import net.laserdiamond.ultimatemanhunt.item.UMItems;
 import net.laserdiamond.ultimatemanhunt.item.WindTorchItem;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
@@ -12,9 +14,13 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameResumed
 import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameStartAnnounceS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraftforge.eventbus.api.Event;
 
 import java.util.LinkedList;
@@ -26,12 +32,14 @@ import java.util.List;
  */
 public abstract class UltimateManhuntGameStateEvent extends Event {
 
+    protected final MinecraftServer server;
     protected final List<Player> hunters;
     protected final List<Player> speedRunners;
     protected final List<Player> spectators;
 
-    public UltimateManhuntGameStateEvent()
+    public UltimateManhuntGameStateEvent(MinecraftServer server)
     {
+        this.server = server;
         this.hunters = new LinkedList<>();
         this.speedRunners = new LinkedList<>();
         this.spectators = new LinkedList<>();
@@ -111,9 +119,10 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
      */
     public static class Start extends UltimateManhuntGameStateEvent implements PlayerGameSpawner
     {
-        public Start()
+
+        public Start(MinecraftServer server)
         {
-            super();
+            super(server);
             UMGame.resetGameTime(); // Reset the game time
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
             UMPackets.sendToAllClients(new GameStartAnnounceS2CPacket());
@@ -133,6 +142,32 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             player.getFoodData().eat(200, 1.0F); // Reset food level
             UMSoundEvents.stopDetectionSound(player);
             UMSoundEvents.stopFlatlineSound(player);
+            player.getInventory().clearContent(); // Clear items
+            player.getActiveEffects().clear(); // Clear effects
+            if (player.isSpectator())
+            {
+                umPlayer.setRole(UMGame.PlayerRole.SPECTATOR); // If the player is in spectator mode, set them to be a spectator
+            }
+            if (!umPlayer.isSpectator()) // Is the player not declared a spectator?
+            {
+                if (player instanceof ServerPlayer serverPlayer)
+                {
+                    serverPlayer.setGameMode(GameType.DEFAULT_MODE); // Set to survival
+                }
+            }
+            if (player instanceof ServerPlayer serverPlayer)
+            {
+                Advancement enderDragonAdvancement = this.server.getAdvancements().getAdvancement(ForgeServerEvents.KILL_DRAGON_ADVANCEMENT);
+                if (enderDragonAdvancement == null)
+                {
+                    return;
+                }
+                AdvancementProgress advancementProgress = serverPlayer.getAdvancements().getOrStartProgress(enderDragonAdvancement);
+                for (String s : advancementProgress.getCompletedCriteria())
+                {
+                    serverPlayer.getAdvancements().revoke(enderDragonAdvancement, s); // Revoke ender dragon advancement and progress
+                }
+            }
         }
 
         @Override
@@ -141,7 +176,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             if (!player.level().isClientSide) // Are we on the server?
             {
 //                UMGame.logPlayerUUID(player); // Log the player for this iteration of the game
-                player.getInventory().clearContent(); // Clear items
                 if (UMGame.isWindTorchEnabled()) // Check if Wind Torches are enabled
                 {
                     player.setItemSlot(EquipmentSlot.MAINHAND, UMItems.WIND_TORCH.get().getDefaultInstance()); // Give wind torch
@@ -158,8 +192,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             if (!player.level().isClientSide)
             {
-                player.getInventory().clearContent(); // Clear items
-
                 umPlayer.resetToHunter(player, true);
                 player.getAbilities().mayfly = true;
                 player.getAbilities().flying = true;
@@ -186,9 +218,9 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     {
         private final Reason reason;
 
-        public End(Reason reason)
+        public End(MinecraftServer server, Reason reason)
         {
-            super();
+            super(server);
             this.reason = reason;
             UMPackets.sendToAllClients(new GameEndAnnounceS2CPacket(this.reason));
             UMPackets.sendToAllClients(new GameTimeS2CPacket(0)); // Reset Game Time
@@ -282,9 +314,9 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     public static class Pause extends UltimateManhuntGameStateEvent
     {
 
-        public Pause()
+        public Pause(MinecraftServer server)
         {
-            super();
+            super(server);
             UMPackets.sendToAllClients(new GamePausedAnnounceS2CPacket());
             SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
         }
@@ -313,9 +345,9 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
     public static class Resume extends UltimateManhuntGameStateEvent
     {
 
-        public Resume()
+        public Resume(MinecraftServer server)
         {
-            super();
+            super(server);
             UMPackets.sendToAllClients(new GameResumedS2CPacket());
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
             SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();

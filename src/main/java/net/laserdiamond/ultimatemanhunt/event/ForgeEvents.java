@@ -4,6 +4,7 @@ import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.api.event.RegisterManhuntSubCommandEvent;
 import net.laserdiamond.ultimatemanhunt.api.event.SpeedRunnerLifeLossEvent;
+import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.commands.*;
@@ -34,6 +35,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
@@ -150,6 +152,10 @@ public class ForgeEvents {
                     }
                 }
             });
+        } else if (living instanceof EnderDragon)
+        {
+            // Ender dragon was killed. Game over
+            MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(event.getEntity().getServer(), UltimateManhuntGameStateEvent.End.Reason.SPEED_RUNNERS_WIN));
         }
     }
 

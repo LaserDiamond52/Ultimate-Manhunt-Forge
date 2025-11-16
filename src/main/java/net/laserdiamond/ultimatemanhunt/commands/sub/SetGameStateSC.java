@@ -101,10 +101,10 @@ public final class SetGameStateSC extends UltimateManhuntCommands.SubCommand {
         {
             switch (newGameState)
             {
-                case STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start());
-                case IN_PROGRESS -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Resume());
-                case PAUSED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Pause());
-                case NOT_STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.COMMAND));
+                case STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start(commandContext.getSource().getServer()));
+                case IN_PROGRESS -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Resume(commandContext.getSource().getServer()));
+                case PAUSED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Pause(commandContext.getSource().getServer()));
+                case NOT_STARTED -> MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(commandContext.getSource().getServer(), UltimateManhuntGameStateEvent.End.Reason.COMMAND));
             }
             logGameStateChange(commandContext.getSource(), newGameState, true);
             i++;
@@ -128,7 +128,7 @@ public final class SetGameStateSC extends UltimateManhuntCommands.SubCommand {
         new UMGameSettingProfileConfig(profileName).applySettingsToGame();
         if (UMGame.setCurrentGameState(UMGame.State.STARTED))
         {
-            MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start());
+            MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.Start(commandContext.getSource().getServer()));
             logGameStateChange(commandContext.getSource(), UMGame.State.STARTED, true);
             i++;
         }

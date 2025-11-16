@@ -85,7 +85,7 @@ public class SpeedRunnerLifeLossEvent extends PlayerEvent {
 
                 if (UMPlayer.getRemainingSpeedRunners().isEmpty()) // Check if there are any remaining speed runners
                 {
-                    MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN)); // No more speed runners. Hunters win!
+                    MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(server, UltimateManhuntGameStateEvent.End.Reason.HUNTER_WIN)); // No more speed runners. Hunters win!
                 }
             }
         });
