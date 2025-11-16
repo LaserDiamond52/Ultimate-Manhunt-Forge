@@ -31,7 +31,13 @@ public class UltimateManhuntCommands {
 
     public static void registerSubCommand(ResourceLocation resourceLocation, Function<LiteralArgumentBuilder<CommandSourceStack>, SubCommand> subCommandFunction)
     {
-        ARGUMENT_BUILDER_REGISTRY_MAP.addEntry(resourceLocation, subCommandFunction);
+        try {
+            ARGUMENT_BUILDER_REGISTRY_MAP.addEntry(resourceLocation, subCommandFunction);
+        } catch (IllegalArgumentException e)
+        {
+            UltimateManhunt.LOGGER.warn("Command already built");
+        }
+
     }
 
     public static class SubCommand

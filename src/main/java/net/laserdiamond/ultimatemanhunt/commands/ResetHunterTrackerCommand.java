@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Deprecated
 public class ResetHunterTrackerCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
@@ -51,7 +52,7 @@ public class ResetHunterTrackerCommand {
                 if (umPlayer.isHunter() && UMGame.State.isGameRunning())
                 {
                     List<Player> trackablePlayers = UMPlayer.getAvailableSpeedRunners(player);
-                    umPlayer.setPlayerToTrack(0, trackablePlayers.get(0));
+                    umPlayer.setPlayerToTrack(0, trackablePlayers.getFirst());
                     ret.getAndIncrement();
                     player.sendSystemMessage(Component.literal("Tracker reset!"));
                 }
