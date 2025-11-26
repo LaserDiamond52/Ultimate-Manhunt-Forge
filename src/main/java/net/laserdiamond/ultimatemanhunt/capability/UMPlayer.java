@@ -31,7 +31,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 {
     private static final ResourceLocation ACTIVE_MODIFIER = UltimateManhunt.fromUMPath("attribute.active_hunter");
 
-    public static final long TRACKER_RESET_COOLDOWN_SECONDS = 20L;
+    public static final long TRACKER_RESET_COOLDOWN_TICKS = 20L;
     public static final int MIN_LIVES = 0;
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
@@ -617,7 +617,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 
     public UMPlayer resetTrackerCooldown(long gameTime)
     {
-        this.trackerResetCooldown = TRACKER_RESET_COOLDOWN_SECONDS + gameTime;
+        this.trackerResetCooldown = TRACKER_RESET_COOLDOWN_TICKS + gameTime;
         return this;
     }
 
