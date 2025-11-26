@@ -25,7 +25,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 {
     private static final UUID HUNTER_MODIFIER_UUID = UUID.fromString("23b44aa5-9990-4e46-b3e6-6df04d3ab1bd");
 
-    public static final long TRACKER_RESET_COOLDOWN_SECONDS = 20L;
+    public static final long TRACKER_RESET_COOLDOWN_TICKS = 20L;
     public static final int MIN_LIVES = 0;
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
@@ -477,7 +477,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 
     public UMPlayer resetTrackerCooldown(long gameTime)
     {
-        this.trackerResetCooldown = TRACKER_RESET_COOLDOWN_SECONDS + gameTime;
+        this.trackerResetCooldown = TRACKER_RESET_COOLDOWN_TICKS + gameTime;
         return this;
     }
 
