@@ -318,6 +318,7 @@ public class ForgeEvents {
                         player.onUpdateAbilities();
                     }
                 }
+                umPlayer.sendUpdateFromServerToSelf(player); // Update client to know about current role
             });
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket()); // Let all player know how many remaining players on each team
         }

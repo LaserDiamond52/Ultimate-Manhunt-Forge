@@ -3,24 +3,20 @@ package net.laserdiamond.ultimatemanhunt.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.laserdiamond.laserutils.util.registry.LanguageRegistry;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
-import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayerCapability;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.ChangeTrackingSpeedRunnerC2SPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.hunter.ResetPlayerTrackerPacketC2S;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-
-import java.util.List;
 
 @Mod.EventBusSubscriber(modid = UltimateManhunt.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class UMKeyBindings {
@@ -85,12 +81,7 @@ public class UMKeyBindings {
                         UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.PREVIOUS));
                     } else if (INSTANCE.refreshTracker.consumeClick())
                     {
-                        List<Player> trackablePlayers = UMPlayer.getAvailableSpeedRunners(localPlayer);
-                        if (!trackablePlayers.isEmpty())
-                        {
-                            umPlayer.setPlayerToTrack(0, trackablePlayers.getFirst());
-                            localPlayer.sendSystemMessage(Component.literal("Tracker reset!"));
-                        }
+                        UMPackets.sendToServer(new ResetPlayerTrackerPacketC2S());
                     }
                 }
             });

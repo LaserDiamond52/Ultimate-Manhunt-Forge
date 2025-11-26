@@ -51,10 +51,25 @@ public class ResetHunterTrackerCommand {
             {
                 if (umPlayer.isHunter() && UMGame.State.isGameRunning())
                 {
+                    long gameTime = UMGame.getCurrentGameTime();
+                    if (!umPlayer.isTrackerCooldownDone(gameTime))
+                    {
+                        player.sendSystemMessage(Component.literal("Tracker reset is on cooldown. Try again in a moment"));
+                        ret.getAndIncrement();
+                        return;
+                    }
                     List<Player> trackablePlayers = UMPlayer.getAvailableSpeedRunners(player);
-                    umPlayer.setPlayerToTrack(0, trackablePlayers.getFirst());
+                    umPlayer.resetTrackerCooldown(gameTime);
+                    if (!trackablePlayers.isEmpty())
+                    {
+                        umPlayer.setPlayerToTrack(0, trackablePlayers.getFirst());
+
+                        player.sendSystemMessage(Component.literal("Tracker reset!"));
+                    } else
+                    {
+                        player.sendSystemMessage(Component.literal("Tracker reset! There are no players to track right now"));
+                    }
                     ret.getAndIncrement();
-                    player.sendSystemMessage(Component.literal("Tracker reset!"));
                 }
             });
         }
