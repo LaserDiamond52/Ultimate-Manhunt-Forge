@@ -8,6 +8,16 @@ In a manhunt game, there are hunters and speed runners. The hunters must elimate
 
 **Note: If no manhunt is active, the Ender Dragon is immune to all damage. The Ender Dragon can only be damaged while a manhunt game is active.**
 
+## Running a Manhunt Game:
+
+If you are here to find out how to quickly set up a manhunt game, or need a refresher, here are the steps to running a Manhunt game with this mod:
+
+1. Set some players to be hunters using ```/ultimate_manhunt roles current <player> hunter``` (add a true/false argument if you want to specify whether this player is a buffed hunter)
+2. Set any necessary gamerules, options, etc. (refer to the 'Commands' section at the bottom of this README.md)
+3. Run ```/ultimate_manhunt gameState start```
+
+For more options on commands and how you can customize your manhunt game, refer to the 'Commands' section at the bottom of this README.md.
+
 ## Features
 
 **Ultimate Manhunt contains the following features:**
