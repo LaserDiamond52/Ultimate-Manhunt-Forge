@@ -1,5 +1,9 @@
 <img width="480" height="480" alt="ultimate_manhunt" src="https://github.com/user-attachments/assets/c906ce9a-594b-4806-b0e2-23df2d4c7c6a" />
 
+[![Download on CurseForge](https://cf.way2muchnoise.eu/1237267.svg)](https://www.curseforge.com/minecraft/mc-mods/ultimate-manhunt)
+
+Also available on [Modrinth](https://modrinth.com/mod/ultimate-manhunt)
+
 ## About
 
 Ultimate Manhunt is a Minecraft Forge mod for version 1.20.1/1.21.1 containing all the features you'd need for starting your own manhunt game. 
