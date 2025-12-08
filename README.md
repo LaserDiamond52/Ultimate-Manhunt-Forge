@@ -59,7 +59,7 @@ For more options on commands and how you can customize your manhunt game, refer 
   - Option for permanent saturation
   - Passive health regeneration
 
-**3D Directional Player Tracker: **
+**3D Directional Player Tracker:**
 
 - There is a built-in 3D directional player tracker for hunters that points to an available speed runner of the hunter's choice (use arrow keys to cycle). The tracker updates every 5 ticks and interpolates between positions, causing less stress on the server and a smoother tracking experience. Players that are dead or aren't in the same dimension as the hunter cannot be tracked.
 - The tracker always points to the exact position of the speed runner it is targeting. This is different from the traditional compass tracker that only pointd to the x and z coordinates of the speed runner, making it much more difficult to hide from.
