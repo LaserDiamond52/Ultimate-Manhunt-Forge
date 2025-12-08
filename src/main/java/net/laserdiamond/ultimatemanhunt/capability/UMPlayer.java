@@ -31,6 +31,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
 {
     private static final ResourceLocation ACTIVE_MODIFIER = UltimateManhunt.fromUMPath("attribute.active_hunter");
 
+    public static final long TRACKER_RESET_COOLDOWN_TICKS = 20L;
     public static final int MIN_LIVES = 0;
     public static final int MAX_LIVES = 99;
     private static int currentMaxLives = 3;
@@ -519,6 +520,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     private int lives;
     private boolean wasLastKilledByHunter;
     private long gracePeriodTimeStamp;
+    private long trackerResetCooldown;
     private boolean isBuffedHunter;
     private int trackingIndex;
     private UUID trackingPlayerUUID;
@@ -529,6 +531,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         this.lives = getMaxLives();
         this.wasLastKilledByHunter = false;
         this.gracePeriodTimeStamp = 0;
+        this.trackerResetCooldown = 0;
         this.isBuffedHunter = false;
         this.trackingIndex = -1; // Start at -1, since the UUID being tracked here is ourselves
         this.trackingPlayerUUID = defaultTrackingUUID; // Default the UUID of the player being tracked to ourselves
@@ -541,6 +544,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         this.lives = umPlayer.lives;
         this.wasLastKilledByHunter = umPlayer.wasLastKilledByHunter;
         this.gracePeriodTimeStamp = umPlayer.gracePeriodTimeStamp;
+        this.trackerResetCooldown = umPlayer.trackerResetCooldown;
         this.isBuffedHunter = umPlayer.isBuffedHunter;
         this.trackingIndex = umPlayer.trackingIndex;
         this.trackingPlayerUUID = umPlayer.trackingPlayerUUID;
@@ -553,6 +557,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         compoundTag.putInt("speed_runner_lives", this.getLives());
         compoundTag.putBoolean("was_last_killed_by_hunter", this.isWasLastKilledByHunter());
         compoundTag.putLong("grace_period_time_stamp", this.getGracePeriodTimeStamp());
+        compoundTag.putLong("tracker_reset_cooldown", this.getTrackerResetCooldown());
         compoundTag.putBoolean("is_buffed_hunter", this.isBuffedHunter());
         compoundTag.putInt("tracking_index", this.getTrackingIndex());
         compoundTag.putUUID("tracking_player_uuid", this.getTrackingPlayerUUID());
@@ -565,6 +570,7 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
         this.lives = compoundTag.getInt("speed_runner_lives");
         this.wasLastKilledByHunter = compoundTag.getBoolean("was_last_killed_by_hunter");
         this.gracePeriodTimeStamp = compoundTag.getLong("grace_period_time_stamp");
+        this.trackerResetCooldown = compoundTag.getLong("tracker_reset_cooldown");
         this.isBuffedHunter = compoundTag.getBoolean("is_buffed_hunter");
         this.trackingIndex = compoundTag.getInt("tracking_player_index");
         this.trackingPlayerUUID = compoundTag.getUUID("tracking_player_uuid");
@@ -602,6 +608,22 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     public UMPlayer setGracePeriodTimeStamp(long gracePeriodTimeStamp) {
         this.gracePeriodTimeStamp = Math.max(0, gracePeriodTimeStamp);
         return this;
+    }
+
+    public long getTrackerResetCooldown()
+    {
+        return this.trackerResetCooldown;
+    }
+
+    public UMPlayer resetTrackerCooldown(long gameTime)
+    {
+        this.trackerResetCooldown = TRACKER_RESET_COOLDOWN_TICKS + gameTime;
+        return this;
+    }
+
+    public boolean isTrackerCooldownDone(long gameTime)
+    {
+        return this.trackerResetCooldown <= gameTime;
     }
 
     private boolean getIsBuffedHunter() {

@@ -16,7 +16,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = UltimateManhunt.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.DEDICATED_SERVER)
 public class ForgeServerEvents {
 
-    private static final ResourceLocation KILL_DRAGON_ADVANCEMENT = ResourceLocation.withDefaultNamespace("end/kill_dragon");
+    public static final ResourceLocation KILL_DRAGON_ADVANCEMENT = ResourceLocation.withDefaultNamespace("end/kill_dragon");
 
     @SubscribeEvent
     public static void onAdvancementEarned(AdvancementEvent.AdvancementEarnEvent event)
@@ -27,7 +27,7 @@ public class ForgeServerEvents {
             ResourceLocation advPath = ah.id();
             if (advPath.equals(KILL_DRAGON_ADVANCEMENT))
             {
-                MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(UltimateManhuntGameStateEvent.End.Reason.SPEED_RUNNERS_WIN));
+                MinecraftForge.EVENT_BUS.post(new UltimateManhuntGameStateEvent.End(event.getEntity().getServer(), UltimateManhuntGameStateEvent.End.Reason.SPEED_RUNNERS_WIN));
             }
         }
     }

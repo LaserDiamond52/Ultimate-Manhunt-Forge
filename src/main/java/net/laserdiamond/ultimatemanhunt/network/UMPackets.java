@@ -80,6 +80,9 @@ public class UMPackets {
 
         // Hunter change tracking speed runner server to client
         registerPacket(ChangeTrackingSpeedRunnerC2SPacket.class, ChangeTrackingSpeedRunnerC2SPacket::new, NetworkDirection.PLAY_TO_SERVER);
+
+        // Reset player tracker
+        registerPacket(ResetPlayerTrackerPacketC2S.class, ResetPlayerTrackerPacketC2S::new, NetworkDirection.PLAY_TO_SERVER);
     }
 
     private static void registerGamePackets()
