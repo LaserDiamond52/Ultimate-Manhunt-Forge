@@ -59,6 +59,12 @@ For more options on commands and how you can customize your manhunt game, refer 
   - Option for permanent saturation
   - Passive health regeneration
 
+**3D Directional Player Tracker: **
+
+- There is a built-in 3D directional player tracker for hunters that points to an available speed runner of the hunter's choice (use arrow keys to cycle). The tracker updates every 5 ticks and interpolates between positions, causing less stress on the server and a smoother tracking experience. Players that are dead or aren't in the same dimension as the hunter cannot be tracked.
+- The tracker always points to the exact position of the speed runner it is targeting. This is different from the traditional compass tracker that only pointd to the x and z coordinates of the speed runner, making it much more difficult to hide from.
+- If a problem occurs with the tracker, use ```/resetPlayerTracker``` or press the 'g' key to reset the tracker to target the first available player.
+
 **Misc:**
 
 - Adjustable timers for speed runner grace period/headstart
@@ -87,7 +93,7 @@ Hunter buffs also have a decent amount of options, and are saved in a ```.json``
 
 ## Commands
 
-All arguments for settings/options for running a Manhunt game can be accseed from the command ```/ultaimte_manhunt``` in-game. Here are all the possible commands
+All arguments for settings/options for running a Manhunt game can be accseed from the command ```/ultaimte_manhunt``` in-game. Here are all the possible commands (All require a permission level of 2 or higher)
 
 **Game Profiles:**
 - ```/ultimate_manhunt gameProfiles <game_profile_name> (load|save|delete)``` - Main command for saving, loading, and deleting game profiles.
@@ -138,4 +144,7 @@ All arguments for settings/options for running a Manhunt game can be accseed fro
   - **Notes:**
     - ```<x>``` and ```<z>``` set the x and z game start coordinates. The y value is the highest available space
     - ```<false|true>``` argument determines if world spawn should be moved to the specified location
+
+There is only one command that doesn't require any permission level, but is only available to hunters during a game:
+- ```resetPlayerTracker``` - Resets the 3D Directional player tracker to target the first available speed runner. Useful if the tracker gets stuck or bugs out.
 
