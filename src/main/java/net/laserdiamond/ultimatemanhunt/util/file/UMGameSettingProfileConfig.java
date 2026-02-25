@@ -20,6 +20,7 @@ public final class UMGameSettingProfileConfig extends JsonConfig
         super(fileName);
     }
 
+    @Override
     public boolean saveSettingsToFile()
     {
         this.jsonObject.addProperty("hunter_grace_period_ticks", UMGame.getHunterGracePeriod());
@@ -36,6 +37,7 @@ public final class UMGameSettingProfileConfig extends JsonConfig
         return this.writeJsonToFile();
     }
 
+    @Override
     public void applySettingsToGame()
     {
         UMGame.setHunterGracePeriod(this.getHunterGracePeriodTicks());

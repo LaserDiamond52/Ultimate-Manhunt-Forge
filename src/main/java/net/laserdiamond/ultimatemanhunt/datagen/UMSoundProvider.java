@@ -3,7 +3,9 @@ package net.laserdiamond.ultimatemanhunt.datagen;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.data.PackOutput;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.common.data.SoundDefinition;
 import net.minecraftforge.common.data.SoundDefinitionsProvider;
@@ -22,10 +24,15 @@ public class UMSoundProvider extends SoundDefinitionsProvider {
         {
             SoundEvent soundEvent = soundEventRegistryObject.get();
             String subtitle = this.subtitle(soundEventRegistryObject);
-            String name = this.soundName(soundEventRegistryObject);
-            this.add(soundEvent, SoundDefinition.definition()
+            ResourceLocation resourceLocationRO = soundEventRegistryObject.getId();
+            ResourceLocation resourceLocation = soundEvent.getLocation();
+            if (resourceLocationRO == null)
+            {
+                return;
+            }
+            this.add(resourceLocationRO, SoundDefinition.definition()
                     .subtitle(subtitle)
-                    .with(sound(UltimateManhunt.fromUMPath(name))));
+                    .with(sound(resourceLocation)));
         }
     }
 

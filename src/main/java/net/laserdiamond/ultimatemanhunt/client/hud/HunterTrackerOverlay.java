@@ -4,7 +4,9 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
+import net.laserdiamond.ultimatemanhunt.client.ClientSettings;
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
+import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientHunterGracePeriod;
 import net.laserdiamond.ultimatemanhunt.client.hunter.ClientTrackedSpeedRunner;
@@ -28,9 +30,14 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
     @Override
     public void onRender(LocalPlayer player, UMPlayer umPlayer, GuiGraphics guiGraphics, float partialTick)
     {
-
         int drawX = guiGraphics.guiWidth() / 2;
         int drawY = guiGraphics.guiHeight() - 77;
+
+        if (!ClientSettings.PLAYER_TRACKER.isEnabled())
+        {
+            guiGraphics.drawCenteredString(MINECRAFT.font, Component.literal(ChatFormatting.RED + "Your 3D Player Tracker is Disabled"), drawX, drawY, ChatFormatting.GREEN.getColor());
+            return;
+        }
 
         boolean areSpeedRunnersPresent = ClientTrackedSpeedRunner.areSpeedRunnersPresent();
         String trackedPlayerName = ClientTrackedSpeedRunner.getTrackedPlayerName();
@@ -41,7 +48,7 @@ public final class HunterTrackerOverlay implements UMHUDOverlay {
 
         DecimalFormat format = new DecimalFormat("0.00");
 
-        if (!umPlayer.isHunter())
+        if (!umPlayer.isHunter() || !ClientGameState.isGameRunning())
         {
             return;
         }

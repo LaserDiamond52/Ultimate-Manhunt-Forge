@@ -2,7 +2,8 @@ package net.laserdiamond.ultimatemanhunt.api.event;
 
 import net.laserdiamond.ultimatemanhunt.capability.UMPlayer;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
-import net.laserdiamond.ultimatemanhunt.network.packet.hunter.HunterReleaseAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.HunterReleaseAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.eventbus.api.Event;
 
@@ -58,7 +59,7 @@ public class HuntersReleasedEvent extends Event implements PlayerGameSpawner {
                     }
                     UMPackets.sendToPlayer(new HunterReleaseAnnounceS2CPacket(false), player);
                 },
-                (player, umPlayer) -> {}
+                (player, umPlayer) -> UMSoundEvents.playerHuntersReleasedSound(player)
         );
     }
 
