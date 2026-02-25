@@ -4,7 +4,9 @@ import com.google.common.collect.HashMultimap;
 import net.laserdiamond.laserutils.capability.AbstractCapabilityData;
 import net.laserdiamond.ultimatemanhunt.UMGame;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
+import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.client.game.ClientGameTime;
+import net.laserdiamond.ultimatemanhunt.client.speedrunner.ClientDistanceFromHunter;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.UMCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerMaxLifeChangeS2CPacket;
@@ -699,6 +701,16 @@ public class UMPlayer extends AbstractCapabilityData<UMPlayer>
     public boolean isSpeedRunnerOnGracePeriodClient()
     {
         return this.isSpeedRunner() && (ClientGameTime.getGameTime() < this.getGracePeriodTimeStamp());
+    }
+
+    public boolean isSpeedRunnerNearHunterClient()
+    {
+        if (!ClientGameState.isGameRunning())
+        {
+            return false;
+        }
+        float distanceFromHunter = ClientDistanceFromHunter.getDistance();
+        return (distanceFromHunter != -1) && (distanceFromHunter < SpeedRunnerHunterProximity.HUNTER_DETECTION_RANGE) && !this.isSpeedRunnerOnGracePeriodClient();
     }
 
     public void reset(Player player, UMGame.PlayerRole role, boolean logPlayer)

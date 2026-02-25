@@ -5,10 +5,7 @@ import net.laserdiamond.laserutils.network.NetworkPackets;
 import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.network.packet.UMCapabilitySyncS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.game.*;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameEndAnnounceS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GamePausedAnnounceS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameResumedS2CPacket;
-import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameStartAnnounceS2CPacket;
+import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.*;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.*;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.*;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -113,6 +110,9 @@ public class UMPackets {
 
         // Remaining Speed Runner and Hunter count server to client
         registerPacket(RemainingPlayerCountS2CPacket.class, RemainingPlayerCountS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
+
+        // Loop Hunter Detection Music on Client
+        registerPacket(UpdateLoopedHunterMusicS2CPacket.class, UpdateLoopedHunterMusicS2CPacket::new, NetworkDirection.PLAY_TO_CLIENT);
     }
 
     public static <P extends NetworkPacket> void registerPacket(Class<P> packetClazz, Function<RegistryFriendlyByteBuf, P> decoder, NetworkDirection<RegistryFriendlyByteBuf> direction)

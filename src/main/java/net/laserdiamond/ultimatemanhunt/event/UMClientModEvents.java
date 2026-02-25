@@ -6,6 +6,7 @@ import net.laserdiamond.ultimatemanhunt.UltimateManhunt;
 import net.laserdiamond.ultimatemanhunt.client.hud.*;
 import net.laserdiamond.ultimatemanhunt.client.layers.SpeedRunnerGracePeriodLayer;
 import net.laserdiamond.ultimatemanhunt.client.models.GracePeriodArmorModel;
+import net.laserdiamond.ultimatemanhunt.util.file.ClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.LayeredDraw;
 import net.minecraftforge.api.distmarker.Dist;
@@ -45,5 +46,11 @@ public class UMClientModEvents {
                 .registerOverlayFirst(new SpeedRunnerHunterDetectionOverlay())
                 .registerOverlayFirst(new SpeedRunnerGracePeriodOverlay())
                 .clientSetUp(event);
+
+        event.enqueueWork(() ->
+        {
+            ClientConfig.getClientConfig().applySettingsToGame();
+            ClientConfig.getClientConfig().saveSettingsToFile();
+        });
     }
 }
