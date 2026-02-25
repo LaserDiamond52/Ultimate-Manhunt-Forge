@@ -14,8 +14,10 @@ import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameResumed
 import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.GameStartAnnounceS2CPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.speedrunner.SpeedRunnerDistanceFromHunterS2CPacket;
 import net.laserdiamond.ultimatemanhunt.sound.UMSoundEvents;
+import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -128,7 +130,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             UMGame.resetGameTime(); // Reset the game time
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
             UMPackets.sendToAllClients(new GameStartAnnounceS2CPacket());
-            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll(server);
         }
 
         @Override
@@ -144,17 +146,19 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             player.getFoodData().eat(200, 1.0F); // Reset food level
             UMSoundEvents.stopDetectionSound(player);
             UMSoundEvents.stopFlatlineSound(player);
+            UMSoundEvents.playGameStartSound(player);
             player.getInventory().clearContent(); // Clear items
             player.getActiveEffects().clear(); // Clear effects
             if (player.isSpectator())
             {
+                player.sendSystemMessage(Component.literal(ChatFormatting.RED + "You were in spectator mode before the game started and have been assigned to be a spectator!"));
                 umPlayer.setRole(UMGame.PlayerRole.SPECTATOR); // If the player is in spectator mode, set them to be a spectator
             }
             if (!umPlayer.isSpectator()) // Is the player not declared a spectator?
             {
                 if (player instanceof ServerPlayer serverPlayer)
                 {
-                    serverPlayer.setGameMode(GameType.DEFAULT_MODE); // Set to survival
+                    serverPlayer.setGameMode(GameType.SURVIVAL); // Set to survival
                 }
             }
             if (player instanceof ServerPlayer serverPlayer)
@@ -242,6 +246,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         protected void forAllPlayers(Player player, UMPlayer umPlayer)
         {
             UMSoundEvents.stopDetectionSound(player);
+            UMSoundEvents.playGameEndSound(player);
         }
 
         @Override
@@ -295,18 +300,6 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
              * The game was ended using the {@linkplain net.laserdiamond.ultimatemanhunt.commands.UltimateManhuntCommands Ultimate Manhunt Game Command}
              */
             COMMAND;
-
-            public static Reason fromOrdinal(int value)
-            {
-                for (Reason reason : values())
-                {
-                    if (reason.ordinal() == value)
-                    {
-                        return reason;
-                    }
-                }
-                return null;
-            }
         }
     }
 
@@ -320,7 +313,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
         {
             super(server);
             UMPackets.sendToAllClients(new GamePausedAnnounceS2CPacket());
-            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll(server);
         }
 
         @Override
@@ -339,6 +332,13 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
                 }
             }
         }
+
+        @Override
+        protected void forAllPlayers(Player player, UMPlayer umPlayer)
+        {
+            UMSoundEvents.stopDetectionSound(player);
+            UMSoundEvents.playGamePauseSound(player);
+        }
     }
 
     /**
@@ -352,7 +352,7 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
             super(server);
             UMPackets.sendToAllClients(new GameResumedS2CPacket());
             UMPackets.sendToAllClients(new RemainingPlayerCountS2CPacket());
-            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll();
+            SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterAll(server);
         }
 
         @Override
@@ -386,6 +386,12 @@ public abstract class UltimateManhuntGameStateEvent extends Event {
                     player.getAttributes().addTransientAttributeModifiers(UMPlayer.createHunterAttributes()); // Add buff attributes
                 }
             }
+        }
+
+        @Override
+        protected void forAllPlayers(Player player, UMPlayer umPlayer)
+        {
+            UMSoundEvents.playGameResumeSound(player);
         }
     }
 }

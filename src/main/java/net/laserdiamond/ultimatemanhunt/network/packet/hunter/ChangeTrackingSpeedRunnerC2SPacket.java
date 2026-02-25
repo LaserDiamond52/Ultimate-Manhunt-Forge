@@ -59,58 +59,15 @@ public class ChangeTrackingSpeedRunnerC2SPacket extends NetworkPacket {
             Player targetPlayer;
             if (this.isNext)
             {
-                trackingIndex = this.incrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+                trackingIndex = (trackingIndex + 1) % availableSpeedRunners.size();
             } else
             {
-                trackingIndex = this.decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
+                trackingIndex = Math.abs(trackingIndex - 1 + availableSpeedRunners.size()) % availableSpeedRunners.size();
             }
             targetPlayer = availableSpeedRunners.get(trackingIndex);
             umPlayer.setPlayerToTrack(trackingIndex, targetPlayer)
                         .sendUpdateFromServerToSelf(player);
         });
 
-//        player.getCapability(PlayerHunterCapability.PLAYER_HUNTER).ifPresent(playerHunter ->
-//        {
-//            int trackingIndex = playerHunter.getTrackingIndex();
-//            if (availableSpeedRunners.isEmpty())
-//            {
-//                return;
-//            }
-//            Player targetPlayer;
-//            if (this.isNext)
-//            {
-//                trackingIndex = incrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
-//            } else
-//            {
-//                trackingIndex = decrementTrackingIndex(trackingIndex, availableSpeedRunners.size());
-//            }
-//            targetPlayer = availableSpeedRunners.get(trackingIndex);
-//            playerHunter.setPlayerToTrack(trackingIndex, targetPlayer);
-//
-//            UMPackets.sendToAllTrackingEntityAndSelf(new HunterCapabilitySyncS2CPacket(player, playerHunter), player);
-//        });
-
-    }
-
-    // NOTE: Tracking index gets updated on the server
-
-    private int incrementTrackingIndex(int trackingIndex, int max)
-    {
-        trackingIndex++; // Increment by 1
-        if (trackingIndex > max) // Over max?
-        {
-            return 0; // Return 0
-        }
-        return trackingIndex;
-    }
-
-    private int decrementTrackingIndex(int trackingIndex, int max)
-    {
-        trackingIndex--; // Decrement by 1
-        if (trackingIndex < 0) // Less than 0?
-        {
-            return max; // Return max
-        }
-        return trackingIndex;
     }
 }

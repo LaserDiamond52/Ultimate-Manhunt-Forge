@@ -3,11 +3,8 @@ package net.laserdiamond.ultimatemanhunt.network.packet.game.announce;
 import net.laserdiamond.ultimatemanhunt.api.event.UltimateManhuntGameStateEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraftforge.event.network.CustomPayloadEvent;
 
 public final class GameEndAnnounceS2CPacket extends AnnounceS2CPacket {
 
@@ -15,32 +12,17 @@ public final class GameEndAnnounceS2CPacket extends AnnounceS2CPacket {
 
     public GameEndAnnounceS2CPacket(UltimateManhuntGameStateEvent.End.Reason reason)
     {
-        super();
         this.reason = reason;
     }
 
     public GameEndAnnounceS2CPacket(FriendlyByteBuf buf)
     {
-        super(buf);
-        this.reason = UltimateManhuntGameStateEvent.End.Reason.fromOrdinal(buf.readInt());
+        this.reason = buf.readEnum(UltimateManhuntGameStateEvent.End.Reason.class);
     }
 
     @Override
     public void toBytes(FriendlyByteBuf buf) {
-        buf.writeInt(this.reason.ordinal());
-    }
-
-    @Override
-    public void packetWork(CustomPayloadEvent.Context context)
-    {
-        // ON CLIENT
-        Minecraft minecraft = Minecraft.getInstance();
-        LocalPlayer player = minecraft.player;
-        if (player != null)
-        {
-            player.playSound(SoundEvents.WITHER_DEATH);
-        }
-        super.packetWork(context); // Call parent method
+        buf.writeEnum(this.reason);
     }
 
     @Override

@@ -40,6 +40,10 @@ public abstract class JsonConfig {
 
     protected abstract String folderName();
 
+    public abstract boolean saveSettingsToFile();
+
+    public abstract void applySettingsToGame();
+
     public final boolean createFile()
     {
         if (this.file.exists())

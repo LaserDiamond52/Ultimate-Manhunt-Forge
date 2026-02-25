@@ -71,18 +71,16 @@ public class SpeedRunnerHunterProximity {
                             int rate = (int) ((distanceToNearestHunter / 12.5) + 6); // Rate ranges from 6 (closest) to 10 (furthest)
                             if (player.tickCount % rate == 0) // ~180 bpm
                             {
-                                serverPlayer.connection.send(new ClientboundSoundPacket(UMSoundEvents.HEART_BEAT.getHolder().get(), SoundSource.PLAYERS, player.getX(), player.getY(), player.getZ(), 100, 1.0F, level.getRandom().nextLong()));
+                                UMSoundEvents.playHeartBeatSound(serverPlayer);
                             }
                             UMSoundEvents.playDetectionSound(player); // Play detection sound
                         }
                     } else if (mcServer.getTickCount() % 5 != 0) // Not close enough to a hunter
                     {
-                        UMSoundEvents.stopDetectionSound(player);
                         SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(player);
                     }
                 } else if (mcServer.getTickCount() % 5 != 0) // Not near a hunter
                 {
-                    UMSoundEvents.stopDetectionSound(player);
                     SpeedRunnerDistanceFromHunterS2CPacket.sendNotNearHunterPlayer(player);
                 }
             }

@@ -1,6 +1,5 @@
-package net.laserdiamond.ultimatemanhunt.network.packet.hunter;
+package net.laserdiamond.ultimatemanhunt.network.packet.game.announce;
 
-import net.laserdiamond.ultimatemanhunt.network.packet.game.announce.AnnounceS2CPacket;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -9,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
-public class HunterReleaseAnnounceS2CPacket extends AnnounceS2CPacket {
+public final class HunterReleaseAnnounceS2CPacket extends AnnounceS2CPacket {
 
     private final boolean isHunter;
 
@@ -27,20 +26,6 @@ public class HunterReleaseAnnounceS2CPacket extends AnnounceS2CPacket {
     public void toBytes(FriendlyByteBuf buf)
     {
         buf.writeBoolean(this.isHunter);
-    }
-
-    @Override
-    public void packetWork(CustomPayloadEvent.Context context)
-    {
-        // ON CLIENT
-        Minecraft minecraft = Minecraft.getInstance();
-        LocalPlayer player = minecraft.player;
-        if (player != null)
-        {
-            player.playSound(SoundEvents.WITHER_SPAWN);
-
-        }
-        super.packetWork(context);
     }
 
     @Override

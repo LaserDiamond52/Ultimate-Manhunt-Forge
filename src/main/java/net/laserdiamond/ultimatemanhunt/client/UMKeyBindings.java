@@ -8,6 +8,7 @@ import net.laserdiamond.ultimatemanhunt.client.game.ClientGameState;
 import net.laserdiamond.ultimatemanhunt.network.UMPackets;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.ChangeTrackingSpeedRunnerC2SPacket;
 import net.laserdiamond.ultimatemanhunt.network.packet.hunter.ResetPlayerTrackerPacketC2S;
+import net.laserdiamond.ultimatemanhunt.screen.ClientSettingScreen;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -29,12 +30,14 @@ public class UMKeyBindings {
     public final KeyMapping cycleRight;
     public final KeyMapping cycleLeft;
     public final KeyMapping refreshTracker;
+    public final KeyMapping settings;
 
     private UMKeyBindings()
     {
         this.cycleRight = registerKeyMapping("Track Next Speed Runner", "cycle_right_speed_runner", KeyConflictContext.IN_GAME, InputConstants.KEY_RIGHT);
         this.cycleLeft = registerKeyMapping("Track Previous Speed Runner", "cycle_left_speed_runner", KeyConflictContext.IN_GAME, InputConstants.KEY_LEFT);
         this.refreshTracker = registerKeyMapping("Refresh Tracker", "refresh_tracker", KeyConflictContext.IN_GAME, InputConstants.KEY_G);
+        this.settings = registerKeyMapping("Open Settings Menu", "open_settings_menu", KeyConflictContext.UNIVERSAL, InputConstants.KEY_M);
     }
 
     public static KeyMapping registerKeyMapping(String name, String description, KeyConflictContext keyConflictContext, int keyInputConstant)
@@ -65,6 +68,10 @@ public class UMKeyBindings {
             {
                 return;
             }
+            while (INSTANCE.settings.consumeClick())
+            {
+                minecraft.setScreen(new ClientSettingScreen());
+            }
             if (!ClientGameState.hasGameBeenStarted())
             {
                 return; // Game has not been started. End method
@@ -73,13 +80,15 @@ public class UMKeyBindings {
             {
                 if (umPlayer.isHunter()) // Player can only cycle through players to track if they are a hunter
                 {
-                    if (INSTANCE.cycleRight.consumeClick())
+                    while (INSTANCE.cycleRight.consumeClick())
                     {
                         UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.NEXT));
-                    } else if (INSTANCE.cycleLeft.consumeClick())
+                    }
+                    while (INSTANCE.cycleLeft.consumeClick())
                     {
                         UMPackets.sendToServer(new ChangeTrackingSpeedRunnerC2SPacket(TrackCycleDirection.PREVIOUS));
-                    } else if (INSTANCE.refreshTracker.consumeClick())
+                    }
+                    while (INSTANCE.refreshTracker.consumeClick())
                     {
                         UMPackets.sendToServer(new ResetPlayerTrackerPacketC2S());
                     }
