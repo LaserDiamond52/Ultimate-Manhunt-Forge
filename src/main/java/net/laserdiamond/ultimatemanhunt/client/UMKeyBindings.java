@@ -53,6 +53,7 @@ public class UMKeyBindings {
         event.register(INSTANCE.cycleRight);
         event.register(INSTANCE.cycleLeft);
         event.register(INSTANCE.refreshTracker);
+        event.register(INSTANCE.settings);
     }
 
     @Mod.EventBusSubscriber(modid = UltimateManhunt.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
